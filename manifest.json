@@ -1,0 +1,42 @@
+{
+  "manifest_version": 2,
+  "name": "data-inspector",
+  "description": "description",
+  "version": "0.0.1",
+  "icons": {
+    "64": "public/icon.png"
+  },
+  "background": {
+    "scripts": [
+      "ext-config/background_script.js"
+    ]
+  },
+  "devtools_page": "ext-config/devtools-panel/index.html",
+  "content_scripts": [
+    {
+      "matches": [
+        "*://*.swapi-graphql.eskerda.vercel.app/*"
+      ],
+      "js": [
+        "ext-config/content_script.js"
+      ]
+    }
+  ],
+  "browser_action": {
+    "default_icon": {
+      "64": "public/icon.png"
+    },
+    "default_popup": "ext-config/browserAction/index.html",
+    "default_title": "data-inspector"
+  },
+  "page_action": {
+    "default_icon": {
+      "64": "public/icon.png"
+    },
+    "default_popup": "ext-config/pageAction/index.html",
+    "default_title": "data-inspector"
+  },
+  "options_ui": {
+    "page": "ext-config/options/index.html"
+  }
+}
