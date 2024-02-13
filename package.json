@@ -4,8 +4,8 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite dev",
-    "build": "vite build",
+    "dev": "concurrently \"web-ext run --devtools\" \"vite dev\"",
+    "build": "vite build && web-ext build --overwrite-dest",
     "build:watch": "vite build --watch"
   },
   "devDependencies": {
@@ -17,14 +17,10 @@
     "vite-plugin-solid": "2.9.1"
   },
   "dependencies": {
-    "@babel/parser": "7.23.9",
     "@codemirror/lang-javascript": "6.2.1",
-    "@codemirror/state": "6.4.0",
     "@prettier/plugin-xml": "3.3.1",
     "@types/har-format": "1.2.15",
     "clsx": "2.1.0",
-    "cm6-graphql": "0.0.13",
-    "codemirror": "6.0.1",
     "graphql": "16.8.1",
     "highlight.js": "11.9.0",
     "http-status": "1.7.3",

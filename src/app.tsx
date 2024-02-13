@@ -1,33 +1,60 @@
-import parserGraphql from "prettier/plugins/graphql";
-import parserEstree from "prettier/plugins/estree";
-import prettier from "prettier/standalone";
 import { Component, createEffect, createSignal, on } from "solid-js";
+import * as prettier from "prettier";
+import parserGraphql from "prettier/plugins/graphql";
 import hljs from "highlight.js/lib/core";
-import gql from "highlight.js/lib/languages/graphql.js";
+import gqlLanguage from "highlight.js/lib/languages/graphql.js";
+import jsonLanguage from "highlight.js/lib/languages/json";
 
 import { entries } from "./store";
 import { Entry, GQLEntry, HTTPEntry } from "./types";
+
 import "highlight.js/styles/atom-one-dark.css";
+import { Header } from "har-format";
+import { isGQLEntry } from "./utils";
 
-hljs.registerLanguage("graphql", gql);
+hljs.registerLanguage("graphql", gqlLanguage);
+hljs.registerLanguage("json", jsonLanguage);
 
-async function normalizeEntry(entry: Entry) {
-	const isGql = entry.type === "GQL";
-	console.log("entry.request.query: ", entry.request.query);
-	let data;
-	try {
-		const response = typeof entry.response.getResponse === "function" ? await entry.response.getResponse() : null;
-		console.log("response: ", response);
+type RequestItem = {
+	name: string;
+	type: string;
+	method: string;
+	headers: Array<Header>;
+	requestQueryString: string;
+	requestGQLQuery: string;
+	requestPostData: string;
+	responsePayload: string;
+};
+
+async function normalizeEntry(entry: Entry): Promise<RequestItem> {
+	const response = typeof entry.response.getResponse === "function" ? await entry.response.getResponse() : null;
+	console.log("(entry as HTTPEntry).request.data: ", (entry as HTTPEntry).request);
+
+	let data: RequestItem;
+	if (isGQLEntry(entry)) {
+		const e = entry as GQLEntry;
 		data = {
-			name: isGql ? entry.request.operationType : entry.request.name,
-			type: isGql ? "GQL" : "XHR",
-			method: entry.request.method,
-			headers: entry.request.headers,
-			requestPayload: isGql ? await prettier.format(entry.request.query, { semi: false, parser: "graphql", plugins: [parserGraphql] }) : (entry as HTTPEntry).request.queryString,
-			responsePayload: response ? await prettier.format(response, { semi: false, parser: "json", plugins: [parserEstree] }) : "No response",
+			name: e.request.operationType,
+			type: "GQL",
+			method: e.request.method,
+			headers: e.request.headers,
+			requestQueryString: null,
+			requestGQLQuery: await prettier.format(entry.request.query, { semi: false, parser: "graphql", plugins: [parserGraphql] }),
+			requestPostData: null,
+			responsePayload: response ? JSON.stringify(response, null, 3) : "No response",
 		};
-	} catch (e) {
-		console.log("e: ", e);
+	} else {
+		const e = entry as HTTPEntry;
+		data = {
+			name: e.request.name,
+			type: "XHR",
+			method: e.request.method,
+			headers: e.request.headers,
+			requestQueryString: JSON.stringify(e.request.query, null, 3),
+			requestGQLQuery: null,
+			requestPostData: JSON.stringify(e.request.body, null, 3),
+			responsePayload: response ? JSON.stringify(response, null, 3) : "No response",
+		};
 	}
 	return data;
 }
@@ -42,13 +69,11 @@ const App: Component = () => {
 		for (const entry of entries) {
 			newEntries.push(await normalizeEntry(entry));
 		}
-		console.log("newEntries: ", newEntries);
 		setEntries(newEntries);
 	});
 
 	createEffect(async () => {
 		const selectedEntry = getEntries()[getSelectedIndex()];
-		console.log("selectedEntry: ", selectedEntry);
 		setSelectedEntry(selectedEntry);
 	});
 
@@ -72,29 +97,49 @@ const App: Component = () => {
 					<>
 						<div class="border-r border-solid border-accent p-2 basis-2/6 overflow-y-auto">
 							<div class="text-gray-500 italic mb-2">{getSelectedEntry().name}</div>
-							<h2 class="text-sm mb-2">Headers</h2>
-							<table>
-								{getSelectedEntry().headers.map((header) => {
-									return (
-										<tr class="border-gray-700 border-solid border-b">
-											<td class="align-top py-1 pr-2 whitespace-nowrap">{header.name}</td>
-											<td>{header.value}</td>
-										</tr>
-									);
-								})}
-							</table>
-							<h2 class="text-sm mb-2">Payload</h2>
-							{console.log("getSelectedEntry().responsePayload: ", getSelectedEntry().responsePayload)}
-							{getSelectedEntry().requestPayload && (
-								<pre>
-									<code class="hljs" innerHTML={hljs.highlight(getSelectedEntry().requestPayload, { language: "graphql" }).value}></code>
-								</pre>
+							<div class="mb-3">
+								<h2 class="text-sm mb-2">Headers</h2>
+								<table>
+									{getSelectedEntry().headers.map((header) => {
+										return (
+											<tr class="border-gray-700 border-solid border-b">
+												<td class="align-top py-1 pr-2 whitespace-nowrap">{header.name}</td>
+												<td>{header.value}</td>
+											</tr>
+										);
+									})}
+								</table>
+							</div>
+							{getSelectedEntry().requestQueryString && (
+								<div class="mb-3">
+									<h2 class="text-sm mb-2">Query string</h2>
+									<pre>
+										<code class="hljs" innerHTML={hljs.highlight(getSelectedEntry().requestQueryString, { language: "json" }).value}></code>
+									</pre>
+								</div>
+							)}
+							{getSelectedEntry().requestGQLQuery && (
+								<div class="mb-3">
+									<h2 class="text-sm mb-2">GQL Query</h2>
+									<pre>
+										<code class="hljs" innerHTML={hljs.highlight(getSelectedEntry().requestGQLQuery, { language: "graphql" }).value}></code>
+									</pre>
+								</div>
+							)}
+							{getSelectedEntry().requestPostData && (
+								<div class="mb-3">
+									<h2 class="text-sm mb-2">POST data</h2>
+									<pre>
+										<code class="hljs" innerHTML={hljs.highlight(getSelectedEntry().requestPostData, { language: "json" }).value}></code>
+									</pre>
+								</div>
 							)}
 						</div>
+
 						<div class="p-2 basis-3/6 overflow-y-auto">
 							{getSelectedEntry().responsePayload && (
 								<pre>
-									<code class="hljs" innerHTML={hljs.highlight(getSelectedEntry().responsePayload, { language: "graphql" }).value}></code>
+									<code class="hljs" innerHTML={hljs.highlight(getSelectedEntry().responsePayload, { language: "json" }).value}></code>
 								</pre>
 							)}
 						</div>

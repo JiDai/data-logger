@@ -6,7 +6,7 @@ import { render } from "solid-js/web";
 import App from "./app";
 import { isGraphQL, isHTTP, parseGQLEntry, parseHTTPEntry } from "./utils";
 
-import { Entry, HAREntry } from "./types";
+import { HAREntry } from "./types";
 import { entries, setEntries } from "./store";
 
 const root = document.getElementById("root");
@@ -19,18 +19,18 @@ if (!(root instanceof HTMLElement)) {
 browser.devtools.network.onRequestFinished.addListener(async (harEntry: HAREntry) => {
 	if (isGraphQL(harEntry)) {
 		const parsedEntries = await parseGQLEntry(harEntry);
-		console.log("parsedEntries: ", parsedEntries);
 		if (Array.isArray(parsedEntries)) {
 			for (const parsedEntry of parsedEntries) {
-				if (parsedEntries.method !== "OPTIONS") setEntries([...entries, parsedEntry]);
+				if (parsedEntry.request.method !== "OPTIONS") setEntries([...entries, parsedEntry]);
 			}
 		} else {
-			if (parsedEntries.method !== "OPTIONS") setEntries([...entries, parsedEntries]);
+			if (parsedEntries.request.method !== "OPTIONS") setEntries([...entries, parsedEntries]);
 		}
 	} else {
 		//  if (isHTTP(harEntry)) not working on firefox
 		const parsed = parseHTTPEntry(harEntry);
-		if (parsed.method !== "OPTIONS") setEntries([...entries, parsed]);
+		console.log("harEntry: ", harEntry);
+		if (parsed.request.method !== "OPTIONS") setEntries([...entries, parsed]);
 	}
 });
 
