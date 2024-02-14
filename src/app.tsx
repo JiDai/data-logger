@@ -22,6 +22,7 @@ type RequestItem = {
 	headers: Array<Header>;
 	requestQueryString: string;
 	requestGQLQuery: string;
+	requestGQLVariables: string;
 	requestPostData: string;
 	responsePayload: string;
 };
@@ -32,6 +33,7 @@ async function normalizeEntry(entry: Entry): Promise<RequestItem> {
 	let data: RequestItem;
 	if (isGQLEntry(entry)) {
 		const e = entry as GQLEntry;
+		console.log("e: ", e);
 		data = {
 			name: `${e.request.operationType} ${e.request.name}`,
 			type: "GQL",
@@ -39,6 +41,7 @@ async function normalizeEntry(entry: Entry): Promise<RequestItem> {
 			headers: e.request.headers,
 			requestQueryString: null,
 			requestGQLQuery: await prettier.format(entry.request.query, { semi: false, parser: "graphql", plugins: [parserGraphql] }),
+			requestGQLVariables: JSON.stringify(e.request.variables, null, 3),
 			requestPostData: null,
 			responsePayload: response ? JSON.stringify(response, null, 3) : "No response",
 		};
@@ -51,6 +54,7 @@ async function normalizeEntry(entry: Entry): Promise<RequestItem> {
 			headers: e.request.headers,
 			requestQueryString: JSON.stringify(e.request.query, null, 3),
 			requestGQLQuery: null,
+			requestGQLVariables: null,
 			requestPostData: JSON.stringify(e.request.body, null, 3),
 			responsePayload: response ? JSON.stringify(response, null, 3) : "No response",
 		};
@@ -118,6 +122,14 @@ const App: Component = () => {
 									<h2 class="text-sm mb-2">GQL Query</h2>
 									<pre>
 										<code class="hljs" innerHTML={hljs.highlight(getSelectedEntry().requestGQLQuery, { language: "graphql" }).value}></code>
+									</pre>
+								</div>
+							)}
+							{getSelectedEntry().requestGQLVariables && (
+								<div class="mb-3">
+									<h2 class="text-sm mb-2">GQL Variables</h2>
+									<pre>
+										<code class="hljs" innerHTML={hljs.highlight(getSelectedEntry().requestGQLVariables, { language: "json" }).value}></code>
 									</pre>
 								</div>
 							)}
