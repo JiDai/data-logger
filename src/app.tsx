@@ -1,11 +1,11 @@
-import { Component, createEffect, createSignal, on } from "solid-js";
+import { Component, createEffect, createSignal } from "solid-js";
 import * as prettier from "prettier";
 import parserGraphql from "prettier/plugins/graphql";
 import hljs from "highlight.js/lib/core";
 import gqlLanguage from "highlight.js/lib/languages/graphql.js";
 import jsonLanguage from "highlight.js/lib/languages/json";
 
-import { entries } from "./store";
+import * as store from "./store";
 import { Entry, GQLEntry, HTTPEntry } from "./types";
 
 import "highlight.js/styles/atom-one-dark.css";
@@ -68,30 +68,42 @@ const App: Component = () => {
 
 	createEffect(async () => {
 		const newEntries = [];
-		for (const entry of entries) {
+		for (const entry of store.entries) {
 			newEntries.push(await normalizeEntry(entry));
 		}
 		setEntries(newEntries);
 	});
 
+	function clearList() {
+		store.setEntries([]);
+	}
+
 	return (
 		<div class="h-full text-xs">
 			<div class="flex flex-row items-stretch gap-x-2 h-full">
-				<div class="basis-1/6 border-r border-solid border-accent p-2 max-w-80 overflow-y-auto">
-					{getEntries()
-						.reverse()
-						.map((entry, index) => {
-							return (
-								<button class=" w-full text-sm mb-2 text-left" onClick={() => setSelectedEntry(entry)} title={entry.name}>
-									<div class="whitespace-nowrap overflow-hidden text-ellipsis mb-2">{entry.name}</div>
-									<div class="flex flex-row gap-2 items-center">
-										<div class="badge badge-xs badge-primary">{entry.type}</div>
-										<div class="badge badge-xs badge-secondary">{entry.method}</div>
-									</div>
-								</button>
-							);
-						})}
+				<div class="flex bg-base-200 basis-[20rem] flex-col border-r border-solid border-accent w-[20rem]">
+					<div class="grow overflow-y-auto p-2">
+						{getEntries()
+							.reverse()
+							.map((entry) => {
+								return (
+									<button class=" w-full text-sm mb-2 text-left" onClick={() => setSelectedEntry(entry)} title={entry.name}>
+										<div class="whitespace-nowrap overflow-hidden text-ellipsis mb-2">{entry.name}</div>
+										<div class="flex flex-row gap-2 items-center">
+											<div class="badge badge-xs badge-primary">{entry.type}</div>
+											<div class="badge badge-xs badge-secondary">{entry.method}</div>
+										</div>
+									</button>
+								);
+							})}
+					</div>
+					<div class="border-t border-solid border-neutral p-2 bg-base-200">
+						<button class="btn btn-neutral btn-xs mt-auto" onClick={clearList}>
+							Clear
+						</button>
+					</div>
 				</div>
+
 				{getSelectedEntry() ? (
 					<>
 						<div class="border-r border-solid border-accent p-2 basis-3/6 overflow-y-auto">
