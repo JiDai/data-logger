@@ -28,13 +28,12 @@ type RequestItem = {
 
 async function normalizeEntry(entry: Entry): Promise<RequestItem> {
 	const response = typeof entry.response.getResponse === "function" ? await entry.response.getResponse() : null;
-	console.log("(entry as HTTPEntry).request.data: ", (entry as HTTPEntry).request);
 
 	let data: RequestItem;
 	if (isGQLEntry(entry)) {
 		const e = entry as GQLEntry;
 		data = {
-			name: e.request.operationType,
+			name: `${e.request.operationType} ${e.request.name}`,
 			type: "GQL",
 			method: e.request.method,
 			headers: e.request.headers,
@@ -83,7 +82,7 @@ const App: Component = () => {
 				<div class="basis-1/6 border-r border-solid border-accent p-2 max-w-80 overflow-y-auto">
 					{getEntries().map((entry, index) => {
 						return (
-							<button class=" w-full text-sm mb-2 text-left" onClick={() => setSelectedIndex(index)}>
+							<button class=" w-full text-sm mb-2 text-left" onClick={() => setSelectedIndex(index)} title={entry.name}>
 								<div class="whitespace-nowrap overflow-hidden text-ellipsis mb-2">{entry.name}</div>
 								<div class="flex flex-row gap-2 items-center">
 									<div class="badge badge-xs badge-primary">{entry.type}</div>

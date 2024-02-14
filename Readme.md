@@ -22,6 +22,10 @@ The build task will generate files in the `/ext-config/devtools-panel/app` folde
 
 `pnpm run dev`
 
+Run a standalone app with fixtures (not working well).
+
+`pnpm run build:watch`
+
 The task will build with watching.
 
 ## Todo

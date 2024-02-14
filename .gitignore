@@ -3,3 +3,4 @@ logs
 pnpm-debug.log*
 node_modules
 /ext-config/devtools-panel/app/
+/web-ext-artifacts/

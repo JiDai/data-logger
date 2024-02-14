@@ -29,7 +29,6 @@ browser.devtools.network.onRequestFinished.addListener(async (harEntry: HAREntry
 	} else {
 		//  if (isHTTP(harEntry)) not working on firefox
 		const parsed = parseHTTPEntry(harEntry);
-		console.log("harEntry: ", harEntry);
 		if (parsed.request.method !== "OPTIONS") setEntries([...entries, parsed]);
 	}
 });
