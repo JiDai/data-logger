@@ -77,7 +77,7 @@ const App: Component = () => {
 	});
 
 	return (
-		<div class="container mx-auto h-full text-xs">
+		<div class="h-full text-xs">
 			<div class="flex flex-row items-stretch gap-x-2 h-full">
 				<div class="basis-1/6 border-r border-solid border-accent p-2 max-w-80 overflow-y-auto">
 					{getEntries().map((entry, index) => {
@@ -94,7 +94,7 @@ const App: Component = () => {
 				</div>
 				{getSelectedEntry() ? (
 					<>
-						<div class="border-r border-solid border-accent p-2 basis-2/6 overflow-y-auto">
+						<div class="border-r border-solid border-accent p-2 basis-3/6 overflow-y-auto">
 							<div class="text-gray-500 italic mb-2">{getSelectedEntry().name}</div>
 							<div class="mb-3">
 								<h2 class="text-sm mb-2">Headers</h2>
@@ -103,7 +103,7 @@ const App: Component = () => {
 										return (
 											<tr class="border-gray-700 border-solid border-b">
 												<td class="align-top py-1 pr-2 whitespace-nowrap">{header.name}</td>
-												<td>{header.value}</td>
+												<td class="break-all">{header.value}</td>
 											</tr>
 										);
 									})}
