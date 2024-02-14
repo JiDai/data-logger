@@ -33,7 +33,6 @@ async function normalizeEntry(entry: Entry): Promise<RequestItem> {
 	let data: RequestItem;
 	if (isGQLEntry(entry)) {
 		const e = entry as GQLEntry;
-		console.log("e: ", e);
 		data = {
 			name: `${e.request.operationType} ${e.request.name}`,
 			type: "GQL",
