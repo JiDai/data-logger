@@ -60,7 +60,6 @@ async function normalizeEntry(entry: Entry): Promise<RequestItem> {
 
 const App: Component = () => {
 	const [getEntries, setEntries] = createSignal([]);
-	const [getSelectedIndex, setSelectedIndex] = createSignal(0);
 	const [getSelectedEntry, setSelectedEntry] = createSignal(null);
 
 	createEffect(async () => {
@@ -71,26 +70,23 @@ const App: Component = () => {
 		setEntries(newEntries);
 	});
 
-	createEffect(async () => {
-		const selectedEntry = getEntries()[getSelectedIndex()];
-		setSelectedEntry(selectedEntry);
-	});
-
 	return (
 		<div class="h-full text-xs">
 			<div class="flex flex-row items-stretch gap-x-2 h-full">
 				<div class="basis-1/6 border-r border-solid border-accent p-2 max-w-80 overflow-y-auto">
-					{getEntries().map((entry, index) => {
-						return (
-							<button class=" w-full text-sm mb-2 text-left" onClick={() => setSelectedIndex(index)} title={entry.name}>
-								<div class="whitespace-nowrap overflow-hidden text-ellipsis mb-2">{entry.name}</div>
-								<div class="flex flex-row gap-2 items-center">
-									<div class="badge badge-xs badge-primary">{entry.type}</div>
-									<div class="badge badge-xs badge-secondary">{entry.method}</div>
-								</div>
-							</button>
-						);
-					})}
+					{getEntries()
+						.reverse()
+						.map((entry, index) => {
+							return (
+								<button class=" w-full text-sm mb-2 text-left" onClick={() => setSelectedEntry(entry)} title={entry.name}>
+									<div class="whitespace-nowrap overflow-hidden text-ellipsis mb-2">{entry.name}</div>
+									<div class="flex flex-row gap-2 items-center">
+										<div class="badge badge-xs badge-primary">{entry.type}</div>
+										<div class="badge badge-xs badge-secondary">{entry.method}</div>
+									</div>
+								</button>
+							);
+						})}
 				</div>
 				{getSelectedEntry() ? (
 					<>
