@@ -1,8 +1,8 @@
 {
   "manifest_version": 2,
-  "name": "data-inspector",
+  "name": "data-logger",
   "description": "description",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "icons": {
     "64": "public/icon.png"
   },
@@ -27,14 +27,14 @@
       "64": "public/icon.png"
     },
     "default_popup": "ext-config/browserAction/index.html",
-    "default_title": "data-inspector"
+    "default_title": "data-logger"
   },
   "page_action": {
     "default_icon": {
       "64": "public/icon.png"
     },
     "default_popup": "ext-config/pageAction/index.html",
-    "default_title": "data-inspector"
+    "default_title": "data-logger"
   },
   "options_ui": {
     "page": "ext-config/options/index.html"
