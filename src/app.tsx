@@ -4,6 +4,7 @@ import parserGraphql from "prettier/plugins/graphql";
 import hljs from "highlight.js/lib/core";
 import gqlLanguage from "highlight.js/lib/languages/graphql.js";
 import jsonLanguage from "highlight.js/lib/languages/json";
+import { formatRelative } from "date-fns/formatRelative";
 
 import * as store from "./store";
 import { Entry, GQLEntry, HTTPEntry } from "./types";
@@ -109,6 +110,7 @@ const App: Component = () => {
 										<div class="flex flex-row gap-2 items-center">
 											<div class="badge badge-xs badge-primary">{entry.type}</div>
 											<div class="badge badge-xs badge-secondary">{entry.method}</div>
+											<div class="text-xs text-base-content/50">{formatRelative(new Date(entry.timestamp), new Date())}</div>
 										</div>
 									</button>
 								);
