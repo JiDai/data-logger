@@ -11,11 +11,14 @@ import { Entry, GQLEntry, HTTPEntry } from "./types";
 import "highlight.js/styles/atom-one-dark.css";
 import { Header } from "har-format";
 import { isGQLEntry } from "./utils";
+import clsx from "clsx";
 
 hljs.registerLanguage("graphql", gqlLanguage);
 hljs.registerLanguage("json", jsonLanguage);
 
 type RequestItem = {
+	id: string;
+	timestamp: number;
 	name: string;
 	type: string;
 	method: string;
@@ -28,12 +31,19 @@ type RequestItem = {
 };
 
 async function normalizeEntry(entry: Entry): Promise<RequestItem> {
-	const response = typeof entry.response.getResponse === "function" ? await entry.response.getResponse() : null;
+	let response = null;
+	try {
+		response = typeof entry.response.getResponse === "function" ? await entry.response.getResponse() : null;
+	} catch (error) {
+		console.warn(`Unable to get response body for entry: ${entry.id}`, error);
+	}
 
 	let data: RequestItem;
 	if (isGQLEntry(entry)) {
 		const e = entry as GQLEntry;
 		data = {
+			id: e.id,
+			timestamp: e.timestamp,
 			name: `${e.request.operationType} ${e.request.name}`,
 			type: "GQL",
 			method: e.request.method,
@@ -47,6 +57,8 @@ async function normalizeEntry(entry: Entry): Promise<RequestItem> {
 	} else {
 		const e = entry as HTTPEntry;
 		data = {
+			id: e.id,
+			timestamp: e.timestamp,
 			name: e.request.name,
 			type: "XHR",
 			method: e.request.method,
@@ -80,13 +92,19 @@ const App: Component = () => {
 	return (
 		<div class="h-full text-xs">
 			<div class="flex flex-row items-stretch gap-x-2 h-full">
-				<div class="flex bg-base-200 basis-[20rem] flex-col border-r border-solid border-accent w-[20rem]">
-					<div class="grow overflow-y-auto p-2">
+				<div class="flex basis-[20rem] flex-col border-r border-solid border-accent w-[20rem]">
+					<div class="grow overflow-y-auto">
 						{getEntries()
-							.reverse()
+							.sort((a, b) => b.timestamp - a.timestamp)
 							.map((entry) => {
 								return (
-									<button class=" w-full text-sm mb-2 text-left" onClick={() => setSelectedEntry(entry)} title={entry.name}>
+									<button
+										class={clsx("w-full text-sm text-left p-2 hover:bg-base-300/50", {
+											"bg-base-300": entry.id === getSelectedEntry()?.id,
+										})}
+										onClick={() => setSelectedEntry(entry)}
+										title={entry.name}
+									>
 										<div class="whitespace-nowrap overflow-hidden text-ellipsis mb-2">{entry.name}</div>
 										<div class="flex flex-row gap-2 items-center">
 											<div class="badge badge-xs badge-primary">{entry.type}</div>
