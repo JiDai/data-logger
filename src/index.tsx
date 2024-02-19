@@ -1,21 +1,17 @@
 /* @refresh reload */
-import './index.css';
-
 import { render } from 'solid-js/web';
 
 import App from './app';
-import { isGraphQL, isHTTP, parseGQLEntry, parseHTTPEntry } from './utils';
-
-import { HAREntry } from './types';
+import './index.css';
 import { entries, setEntries } from './store';
 import { fixtures } from './store/fixtures';
+import { HAREntry } from './types';
+import { isGraphQL, isHTTP, parseGQLEntry, parseHTTPEntry } from './utils';
 
 const root = document.getElementById('root');
 
 if (!(root instanceof HTMLElement)) {
-	throw new Error(
-		'Root element not found. Did you forget to add it to your index.html? Or maybe the id attribute got misspelled?',
-	);
+	throw new Error('Root element not found. Did you forget to add it to your index.html? Or maybe the id attribute got misspelled?');
 }
 
 if (import.meta.env.DEV) {
@@ -27,46 +23,38 @@ if (import.meta.env.DEV) {
 				const parsedEntries = await parseGQLEntry(harEntry);
 				if (Array.isArray(parsedEntries)) {
 					for (const parsedEntry of parsedEntries) {
-						if (parsedEntry.request.method !== 'OPTIONS')
-							setEntries([...entries, parsedEntry]);
+						if (parsedEntry.request.method !== 'OPTIONS') setEntries([...entries, parsedEntry]);
 					}
 				} else {
-					if (parsedEntries.request.method !== 'OPTIONS')
-						setEntries([...entries, parsedEntries]);
+					if (parsedEntries.request.method !== 'OPTIONS') setEntries([...entries, parsedEntries]);
 				}
 			} else {
 				//  if (isHTTP(harEntry)) not working on firefox
 				// @ts-expect-error Incorrect types
 				const parsed = parseHTTPEntry(harEntry);
-				if (parsed.request.method !== 'OPTIONS')
-					setEntries([...entries, parsed]);
+				if (parsed.request.method !== 'OPTIONS') setEntries([...entries, parsed]);
 			}
 		}
 	})();
 } else {
 	// @ts-expect-error Incorrect types
-	browser.devtools.network.onRequestFinished.addListener(
-		async (harEntry: HAREntry) => {
-			console.log('harEntry: ', harEntry);
-			if (isGraphQL(harEntry)) {
-				const parsedEntries = await parseGQLEntry(harEntry);
-				if (Array.isArray(parsedEntries)) {
-					for (const parsedEntry of parsedEntries) {
-						if (parsedEntry.request.method !== 'OPTIONS')
-							setEntries([...entries, parsedEntry]);
-					}
-				} else {
-					if (parsedEntries.request.method !== 'OPTIONS')
-						setEntries([...entries, parsedEntries]);
+	browser.devtools.network.onRequestFinished.addListener(async (harEntry: HAREntry) => {
+		console.log('harEntry: ', harEntry);
+		if (isGraphQL(harEntry)) {
+			const parsedEntries = await parseGQLEntry(harEntry);
+			if (Array.isArray(parsedEntries)) {
+				for (const parsedEntry of parsedEntries) {
+					if (parsedEntry.request.method !== 'OPTIONS') setEntries([...entries, parsedEntry]);
 				}
 			} else {
-				//  if (isHTTP(harEntry)) not working on firefox
-				const parsed = parseHTTPEntry(harEntry);
-				if (parsed.request.method !== 'OPTIONS')
-					setEntries([...entries, parsed]);
+				if (parsedEntries.request.method !== 'OPTIONS') setEntries([...entries, parsedEntries]);
 			}
-		},
-	);
+		} else {
+			//  if (isHTTP(harEntry)) not working on firefox
+			const parsed = parseHTTPEntry(harEntry);
+			if (parsed.request.method !== 'OPTIONS') setEntries([...entries, parsed]);
+		}
+	});
 }
 
 render(() => <App />, root);

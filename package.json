@@ -19,6 +19,7 @@
   "dependencies": {
     "@codemirror/lang-javascript": "6.2.1",
     "@prettier/plugin-xml": "3.3.1",
+    "@trivago/prettier-plugin-sort-imports": "4.3.0",
     "@types/har-format": "1.2.15",
     "clsx": "2.1.0",
     "date-fns": "3.3.1",
@@ -27,6 +28,7 @@
     "http-status": "1.7.3",
     "jsonpath": "1.1.1",
     "prettier": "3.2.5",
+    "prettier-plugin-tailwindcss": "0.5.11",
     "solid-codemirror": "2.3.1",
     "solid-js": "1.8.14",
     "ufo": "1.4.0",

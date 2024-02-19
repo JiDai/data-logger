@@ -1,21 +1,21 @@
-import { Component, createEffect, createSignal } from "solid-js";
-import * as prettier from "prettier";
-import parserGraphql from "prettier/plugins/graphql";
-import hljs from "highlight.js/lib/core";
-import gqlLanguage from "highlight.js/lib/languages/graphql.js";
-import jsonLanguage from "highlight.js/lib/languages/json";
-import { formatRelative } from "date-fns/formatRelative";
+import clsx from 'clsx';
+import { formatRelative } from 'date-fns/formatRelative';
+import { Header } from 'har-format';
+import hljs from 'highlight.js/lib/core';
+import gqlLanguage from 'highlight.js/lib/languages/graphql.js';
+import jsonLanguage from 'highlight.js/lib/languages/json';
+import 'highlight.js/styles/atom-one-dark.css';
+import jp from 'jsonpath';
+import * as prettier from 'prettier';
+import parserGraphql from 'prettier/plugins/graphql';
+import { Component, JSX, createEffect, createSignal } from 'solid-js';
 
-import * as store from "./store";
-import { Entry, GQLEntry, HTTPEntry } from "./types";
+import * as store from './store';
+import { Entry, GQLEntry, HTTPEntry } from './types';
+import { isGQLEntry } from './utils';
 
-import "highlight.js/styles/atom-one-dark.css";
-import { Header } from "har-format";
-import { isGQLEntry } from "./utils";
-import clsx from "clsx";
-
-hljs.registerLanguage("graphql", gqlLanguage);
-hljs.registerLanguage("json", jsonLanguage);
+hljs.registerLanguage('graphql', gqlLanguage);
+hljs.registerLanguage('json', jsonLanguage);
 
 type RequestItem = {
 	id: string;
@@ -31,10 +31,14 @@ type RequestItem = {
 	responsePayload: string;
 };
 
+function clearList() {
+	store.setEntries([]);
+}
+
 async function normalizeEntry(entry: Entry): Promise<RequestItem> {
 	let response = null;
 	try {
-		response = typeof entry.response.getResponse === "function" ? await entry.response.getResponse() : null;
+		response = typeof entry.response.getResponse === 'function' ? await entry.response.getResponse() : null;
 	} catch (error) {
 		console.warn(`Unable to get response body for entry: ${entry.id}`, error);
 	}
@@ -46,14 +50,18 @@ async function normalizeEntry(entry: Entry): Promise<RequestItem> {
 			id: e.id,
 			timestamp: e.timestamp,
 			name: `${e.request.operationType} ${e.request.name}`,
-			type: "GQL",
+			type: 'GQL',
 			method: e.request.method,
 			headers: e.request.headers,
 			requestQueryString: null,
-			requestGQLQuery: await prettier.format(entry.request.query, { semi: false, parser: "graphql", plugins: [parserGraphql] }),
+			requestGQLQuery: await prettier.format(entry.request.query, {
+				semi: false,
+				parser: 'graphql',
+				plugins: [parserGraphql],
+			}),
 			requestGQLVariables: JSON.stringify(e.request.variables, null, 3),
 			requestPostData: null,
-			responsePayload: response ? JSON.stringify(response, null, 3) : "No response",
+			responsePayload: response ? response : 'No response',
 		};
 	} else {
 		const e = entry as HTTPEntry;
@@ -61,14 +69,14 @@ async function normalizeEntry(entry: Entry): Promise<RequestItem> {
 			id: e.id,
 			timestamp: e.timestamp,
 			name: e.request.name,
-			type: "XHR",
+			type: 'XHR',
 			method: e.request.method,
 			headers: e.request.headers,
 			requestQueryString: JSON.stringify(e.request.query, null, 3),
 			requestGQLQuery: null,
 			requestGQLVariables: null,
 			requestPostData: JSON.stringify(e.request.body, null, 3),
-			responsePayload: response ? JSON.stringify(response, null, 3) : "No response",
+			responsePayload: response ? response : 'No response',
 		};
 	}
 	return data;
@@ -108,31 +116,31 @@ const App: Component = () => {
 
 	return (
 		<div class="h-full text-xs">
-			<div class="flex flex-row items-stretch gap-x-2 h-full">
-				<div class="flex basis-[20rem] flex-col border-r border-solid border-accent w-[20rem]">
+			<div class="flex h-full flex-row items-stretch gap-x-2">
+				<div class="flex w-[20rem] basis-[20rem] flex-col border-r border-solid border-accent">
 					<div class="grow overflow-y-auto">
 						{getEntries()
 							.sort((a, b) => b.timestamp - a.timestamp)
 							.map((entry) => {
 								return (
 									<button
-										class={clsx("w-full text-sm text-left p-2 hover:bg-base-300/50", {
-											"bg-base-300": entry.id === getSelectedEntry()?.id,
+										class={clsx('w-full p-2 text-left text-sm hover:bg-base-300/50', {
+											'bg-base-300': entry.id === getSelectedEntry()?.id,
 										})}
 										onClick={() => setSelectedEntry(entry)}
 										title={entry.name}
 									>
-										<div class="whitespace-nowrap overflow-hidden text-ellipsis mb-2">{entry.name}</div>
-										<div class="flex flex-row gap-2 items-center">
-											<div class="badge badge-xs badge-primary">{entry.type}</div>
-											<div class="badge badge-xs badge-secondary">{entry.method}</div>
+										<div class="mb-2 overflow-hidden text-ellipsis whitespace-nowrap">{entry.name}</div>
+										<div class="flex flex-row items-center gap-2">
+											<div class="badge badge-primary badge-xs">{entry.type}</div>
+											<div class="badge badge-secondary badge-xs">{entry.method}</div>
 											<div class="text-xs text-base-content/50">{formatRelative(new Date(entry.timestamp), new Date())}</div>
 										</div>
 									</button>
 								);
 							})}
 					</div>
-					<div class="border-t border-solid border-neutral p-2 bg-base-200 mt-auto">
+					<div class="mt-auto border-t border-solid border-neutral bg-base-200 p-2">
 						<button class="btn btn-neutral btn-xs" onClick={clearList}>
 							Clear
 						</button>
@@ -141,15 +149,15 @@ const App: Component = () => {
 
 				{getSelectedEntry() ? (
 					<>
-						<div class="border-r border-solid border-accent p-2 basis-3/6 overflow-y-auto">
-							<div class="text-gray-500 italic mb-2">{getSelectedEntry().name}</div>
+						<div class="basis-3/6 overflow-y-auto border-r border-solid border-accent p-2">
+							<div class="mb-2 italic text-gray-500">{getSelectedEntry().name}</div>
 							<div class="mb-3">
-								<h2 class="text-sm mb-2">Headers</h2>
+								<h2 class="mb-2 text-sm">Headers</h2>
 								<table>
 									{getSelectedEntry().headers.map((header) => {
 										return (
-											<tr class="border-gray-700 border-solid border-b">
-												<td class="align-top py-1 pr-2 whitespace-nowrap">{header.name}</td>
+											<tr class="border-b border-solid border-gray-700">
+												<td class="whitespace-nowrap py-1 pr-2 align-top">{header.name}</td>
 												<td class="break-all">{header.value}</td>
 											</tr>
 										);
@@ -158,39 +166,42 @@ const App: Component = () => {
 							</div>
 							{getSelectedEntry().requestQueryString && (
 								<div class="mb-3">
-									<h2 class="text-sm mb-2">Query string</h2>
+									<h2 class="mb-2 text-sm">Query string</h2>
 									<pre>
-										<code class="hljs" innerHTML={hljs.highlight(getSelectedEntry().requestQueryString, { language: "json" }).value}></code>
+										<code class="hljs" innerHTML={hljs.highlight(getSelectedEntry().requestQueryString, { language: 'json' }).value}></code>
 									</pre>
 								</div>
 							)}
 							{getSelectedEntry().requestGQLQuery && (
 								<div class="mb-3">
-									<h2 class="text-sm mb-2">GQL Query</h2>
+									<h2 class="mb-2 text-sm">GQL Query</h2>
 									<pre>
-										<code class="hljs" innerHTML={hljs.highlight(getSelectedEntry().requestGQLQuery, { language: "graphql" }).value}></code>
+										<code class="hljs" innerHTML={hljs.highlight(getSelectedEntry().requestGQLQuery, { language: 'graphql' }).value}></code>
 									</pre>
 								</div>
 							)}
 							{getSelectedEntry().requestGQLVariables && (
 								<div class="mb-3">
-									<h2 class="text-sm mb-2">GQL Variables</h2>
+									<h2 class="mb-2 text-sm">GQL Variables</h2>
 									<pre>
-										<code class="hljs" innerHTML={hljs.highlight(getSelectedEntry().requestGQLVariables, { language: "json" }).value}></code>
+										<code
+											class="hljs"
+											innerHTML={hljs.highlight(getSelectedEntry().requestGQLVariables, { language: 'json' }).value}
+										></code>
 									</pre>
 								</div>
 							)}
 							{getSelectedEntry().requestPostData && (
 								<div class="mb-3">
-									<h2 class="text-sm mb-2">POST data</h2>
+									<h2 class="mb-2 text-sm">POST data</h2>
 									<pre>
-										<code class="hljs" innerHTML={hljs.highlight(getSelectedEntry().requestPostData, { language: "json" }).value}></code>
+										<code class="hljs" innerHTML={hljs.highlight(getSelectedEntry().requestPostData, { language: 'json' }).value}></code>
 									</pre>
 								</div>
 							)}
 						</div>
 
-						<div class="flex flex-col basis-3/6 overflow-y-auto">
+						<div class="flex basis-3/6 flex-col overflow-y-auto">
 							<div class="grow overflow-y-auto p-2">
 								{getSelectedEntry().responsePayload && (
 									<pre>
@@ -198,12 +209,12 @@ const App: Component = () => {
 									</pre>
 								)}
 							</div>
-							<div class="border-t border-solid border-neutral bg-base-200 mt-auto flex items-center justify-between">
+							<div class="mt-auto flex items-center justify-between border-t border-solid border-neutral bg-base-200">
 								<input
 									type="text"
 									value={getResponsePayloadJSONPathFilter()}
 									placeholder="Filter with JSONPath"
-									class="p-2 bg-transparent outline-none ring-0"
+									class="bg-transparent p-2 outline-none ring-0"
 									onChange={responsePayloadJSONChangeHandler}
 								/>
 								{getResponsePayloadJSONPathFilter() && (
@@ -214,7 +225,7 @@ const App: Component = () => {
 											viewBox="0 0 24 24"
 											stroke-width={1.5}
 											stroke="currentColor"
-											class="w-6 h-6"
+											class="h-6 w-6"
 											onClick={() => setResponsePayloadJSONPathFilter('')}
 										>
 											<path
