@@ -4,9 +4,9 @@
   "version": "0.0.3",
   "type": "module",
   "scripts": {
-    "dev": "concurrently \"web-ext run --devtools\" \"vite dev\"",
+    "dev": "vite dev",
     "build": "vite build && web-ext build --overwrite-dest",
-    "build:watch": "vite build --watch"
+    "build:watch": "concurrently \"web-ext run --devtools\" \"vite build --watch\""
   },
   "devDependencies": {
     "autoprefixer": "10.4.17",
