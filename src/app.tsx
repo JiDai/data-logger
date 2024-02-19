@@ -77,6 +77,8 @@ async function normalizeEntry(entry: Entry): Promise<RequestItem> {
 const App: Component = () => {
 	const [getEntries, setEntries] = createSignal([]);
 	const [getSelectedEntry, setSelectedEntry] = createSignal(null);
+	const [getResponsePayloadJSONPathFilter, setResponsePayloadJSONPathFilter] = createSignal(null);
+	const [getResponsePayload, setResponsePayload] = createSignal(null);
 
 	createEffect(async () => {
 		const newEntries = [];
@@ -86,8 +88,22 @@ const App: Component = () => {
 		setEntries(newEntries);
 	});
 
-	function clearList() {
-		store.setEntries([]);
+	createEffect(function () {
+		let payload = '';
+		if (getSelectedEntry()?.responsePayload && getResponsePayloadJSONPathFilter()) {
+			try {
+				payload = jp.query(getSelectedEntry()?.responsePayload, getResponsePayloadJSONPathFilter());
+			} catch (error) {
+				console.log('jsonpath error', error);
+			}
+		} else if (getSelectedEntry()?.responsePayload) {
+			payload = getSelectedEntry().responsePayload;
+		}
+		setResponsePayload(hljs.highlight(JSON.stringify(payload, null, 3), { language: 'json' }).value);
+	});
+
+	function responsePayloadJSONChangeHandler(event) {
+		setResponsePayloadJSONPathFilter(event.target.value);
 	}
 
 	return (
@@ -116,8 +132,8 @@ const App: Component = () => {
 								);
 							})}
 					</div>
-					<div class="border-t border-solid border-neutral p-2 bg-base-200">
-						<button class="btn btn-neutral btn-xs mt-auto" onClick={clearList}>
+					<div class="border-t border-solid border-neutral p-2 bg-base-200 mt-auto">
+						<button class="btn btn-neutral btn-xs" onClick={clearList}>
 							Clear
 						</button>
 					</div>
@@ -174,12 +190,42 @@ const App: Component = () => {
 							)}
 						</div>
 
-						<div class="p-2 basis-3/6 overflow-y-auto">
-							{getSelectedEntry().responsePayload && (
-								<pre>
-									<code class="hljs" innerHTML={hljs.highlight(getSelectedEntry().responsePayload, { language: "json" }).value}></code>
-								</pre>
-							)}
+						<div class="flex flex-col basis-3/6 overflow-y-auto">
+							<div class="grow overflow-y-auto p-2">
+								{getSelectedEntry().responsePayload && (
+									<pre>
+										<code class="hljs" innerHTML={getResponsePayload()}></code>
+									</pre>
+								)}
+							</div>
+							<div class="border-t border-solid border-neutral bg-base-200 mt-auto flex items-center justify-between">
+								<input
+									type="text"
+									value={getResponsePayloadJSONPathFilter()}
+									placeholder="Filter with JSONPath"
+									class="p-2 bg-transparent outline-none ring-0"
+									onChange={responsePayloadJSONChangeHandler}
+								/>
+								{getResponsePayloadJSONPathFilter() && (
+									<button class="mr-2">
+										<svg
+											xmlns="http://www.w3.org/2000/svg"
+											fill="none"
+											viewBox="0 0 24 24"
+											stroke-width={1.5}
+											stroke="currentColor"
+											class="w-6 h-6"
+											onClick={() => setResponsePayloadJSONPathFilter('')}
+										>
+											<path
+												stroke-linecap="round"
+												stroke-linejoin="round"
+												d="m9.75 9.75 4.5 4.5m0-4.5-4.5 4.5M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"
+											/>
+										</svg>
+									</button>
+								)}
+							</div>
 						</div>
 					</>
 				) : null}

@@ -25,6 +25,7 @@
     "graphql": "16.8.1",
     "highlight.js": "11.9.0",
     "http-status": "1.7.3",
+    "jsonpath": "1.1.1",
     "prettier": "3.2.5",
     "solid-codemirror": "2.3.1",
     "solid-js": "1.8.14",
