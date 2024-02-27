@@ -23,6 +23,9 @@ type RequestItem = {
 	name: string;
 	type: string;
 	method: string;
+	responseStatusCode: number;
+	responseStatusMessage: string;
+	time: number;
 	headers: Array<Header>;
 	requestQueryString: string;
 	requestGQLQuery: string;
@@ -36,9 +39,9 @@ function clearList() {
 }
 
 async function normalizeEntry(entry: Entry): Promise<RequestItem> {
-	let response = null;
+	let responsePayload = null;
 	try {
-		response = typeof entry.response.getResponse === 'function' ? await entry.response.getResponse() : null;
+		responsePayload = typeof entry.response.getResponse === 'function' ? await entry.response.getResponse() : null;
 	} catch (error) {
 		console.warn(`Unable to get response body for entry: ${entry.id}`, error);
 	}
@@ -53,6 +56,7 @@ async function normalizeEntry(entry: Entry): Promise<RequestItem> {
 			type: 'GQL',
 			method: e.request.method,
 			headers: e.request.headers,
+			time: entry.time,
 			requestQueryString: null,
 			requestGQLQuery: await prettier.format(entry.request.query, {
 				semi: false,
@@ -61,7 +65,9 @@ async function normalizeEntry(entry: Entry): Promise<RequestItem> {
 			}),
 			requestGQLVariables: JSON.stringify(e.request.variables, null, 3),
 			requestPostData: null,
-			responsePayload: response ? response : 'No response',
+			responseStatusCode: entry.response.status,
+			responseStatusMessage: entry.response.statusMessage,
+			responsePayload: responsePayload ? responsePayload : 'No response',
 		};
 	} else {
 		const e = entry as HTTPEntry;
@@ -72,11 +78,14 @@ async function normalizeEntry(entry: Entry): Promise<RequestItem> {
 			type: 'XHR',
 			method: e.request.method,
 			headers: e.request.headers,
+			time: entry.time,
 			requestQueryString: JSON.stringify(e.request.query, null, 3),
 			requestGQLQuery: null,
 			requestGQLVariables: null,
 			requestPostData: JSON.stringify(e.request.body, null, 3),
-			responsePayload: response ? response : 'No response',
+			responseStatusCode: entry.response.status,
+			responseStatusMessage: entry.response.statusMessage,
+			responsePayload: responsePayload ? responsePayload : 'No response',
 		};
 	}
 	return data;
@@ -117,23 +126,23 @@ const App: Component = () => {
 	return (
 		<div class="h-full text-xs">
 			<div class="flex h-full flex-row items-stretch gap-x-2">
-				<div class="flex w-[20rem] basis-[20rem] flex-col border-r border-solid border-accent">
+				<div class="flex w-[20rem] basis-[20rem] flex-col border-r border-solid border-neutral">
 					<div class="grow overflow-y-auto">
 						{getEntries()
 							.sort((a, b) => b.timestamp - a.timestamp)
 							.map((entry) => {
 								return (
 									<button
-										class={clsx('w-full p-2 text-left text-sm hover:bg-base-300/50', {
-											'bg-base-300': entry.id === getSelectedEntry()?.id,
+										class={clsx('w-full p-2 text-left text-sm hover:bg-accent/20', {
+											'bg-accent/20': entry.id === getSelectedEntry()?.id,
 										})}
 										onClick={() => setSelectedEntry(entry)}
 										title={entry.name}
 									>
 										<div class="mb-2 overflow-hidden text-ellipsis whitespace-nowrap">{entry.name}</div>
 										<div class="flex flex-row items-center gap-2">
-											<div class="badge badge-primary badge-xs">{entry.type}</div>
-											<div class="badge badge-secondary badge-xs">{entry.method}</div>
+											<div class="badge badge-primary badge-xs font-mono">{entry.type}</div>
+											<div class="badge badge-secondary badge-xs font-mono">{entry.method}</div>
 											<div class="text-xs text-base-content/50">{formatRelative(new Date(entry.timestamp), new Date())}</div>
 										</div>
 									</button>
@@ -149,10 +158,14 @@ const App: Component = () => {
 
 				{getSelectedEntry() ? (
 					<>
-						<div class="basis-3/6 overflow-y-auto border-r border-solid border-accent p-2">
-							<div class="mb-2 italic text-gray-500">{getSelectedEntry().name}</div>
+						<div class="basis-3/6 overflow-y-auto border-r border-solid border-neutral p-2">
+							<h2 class="mb-4 flex flex-row items-center gap-2 text-lg">
+								{getSelectedEntry().name}
+								<div class="badge badge-primary font-mono">{getSelectedEntry().type}</div>
+								<div class="badge badge-secondary font-mono">{getSelectedEntry().method}</div>
+							</h2>
 							<div class="mb-3">
-								<h2 class="mb-2 text-sm">Headers</h2>
+								<h3 class="mb-2 text-base">Headers</h3>
 								<table>
 									{getSelectedEntry().headers.map((header) => {
 										return (
@@ -166,7 +179,7 @@ const App: Component = () => {
 							</div>
 							{getSelectedEntry().requestQueryString && (
 								<div class="mb-3">
-									<h2 class="mb-2 text-sm">Query string</h2>
+									<h3 class="mb-2 text-base">Query string</h3>
 									<pre>
 										<code class="hljs" innerHTML={hljs.highlight(getSelectedEntry().requestQueryString, { language: 'json' }).value}></code>
 									</pre>
@@ -174,7 +187,7 @@ const App: Component = () => {
 							)}
 							{getSelectedEntry().requestGQLQuery && (
 								<div class="mb-3">
-									<h2 class="mb-2 text-sm">GQL Query</h2>
+									<h3 class="mb-2 text-base">GQL Query</h3>
 									<pre>
 										<code class="hljs" innerHTML={hljs.highlight(getSelectedEntry().requestGQLQuery, { language: 'graphql' }).value}></code>
 									</pre>
@@ -182,7 +195,7 @@ const App: Component = () => {
 							)}
 							{getSelectedEntry().requestGQLVariables && (
 								<div class="mb-3">
-									<h2 class="mb-2 text-sm">GQL Variables</h2>
+									<h3 class="mb-2 text-base">GQL Variables</h3>
 									<pre>
 										<code
 											class="hljs"
@@ -193,7 +206,7 @@ const App: Component = () => {
 							)}
 							{getSelectedEntry().requestPostData && (
 								<div class="mb-3">
-									<h2 class="mb-2 text-sm">POST data</h2>
+									<h3 class="mb-2 text-base">POST data</h3>
 									<pre>
 										<code class="hljs" innerHTML={hljs.highlight(getSelectedEntry().requestPostData, { language: 'json' }).value}></code>
 									</pre>
@@ -203,8 +216,19 @@ const App: Component = () => {
 
 						<div class="flex basis-3/6 flex-col overflow-y-auto">
 							<div class="grow overflow-y-auto p-2">
+								<h2 class="mb-4 text-base">
+									<span
+										class={clsx('badge font-mono', {
+											'badge-error': getSelectedEntry().responseStatusCode >= 400,
+											'badge-success': getSelectedEntry().responseStatusCode < 400,
+										})}
+									>
+										{getSelectedEntry().responseStatusCode} {getSelectedEntry().responseStatusMessage}
+									</span>
+									<span class="ml-3 font-thin">{getSelectedEntry().time}ms</span>
+								</h2>
 								{getSelectedEntry().responsePayload && (
-									<pre>
+									<pre class="mt-0">
 										<code class="hljs" innerHTML={getResponsePayload()}></code>
 									</pre>
 								)}
