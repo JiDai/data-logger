@@ -27,6 +27,7 @@ type RequestItem = {
 	responseStatusMessage: string;
 	time: number;
 	headers: Array<Header>;
+	requestDomain: string;
 	requestQueryString: string;
 	requestGQLQuery: string;
 	requestGQLVariables: string;
@@ -38,6 +39,10 @@ function clearList() {
 	store.setEntries([]);
 }
 
+function escapeRegExp(string) {
+	return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 async function normalizeEntry(entry: Entry): Promise<RequestItem> {
 	let responsePayload = null;
 	try {
@@ -46,6 +51,7 @@ async function normalizeEntry(entry: Entry): Promise<RequestItem> {
 		console.warn(`Unable to get response body for entry: ${entry.id}`, error);
 	}
 
+	console.log('entry.request: ', entry.request);
 	let data: RequestItem;
 	if (isGQLEntry(entry)) {
 		const e = entry as GQLEntry;
@@ -56,17 +62,18 @@ async function normalizeEntry(entry: Entry): Promise<RequestItem> {
 			type: 'GQL',
 			method: e.request.method,
 			headers: e.request.headers,
-			time: entry.time,
+			time: e.time,
+			requestDomain: e.request.url,
 			requestQueryString: null,
-			requestGQLQuery: await prettier.format(entry.request.query, {
+			requestGQLQuery: await prettier.format(e.request.query, {
 				semi: false,
 				parser: 'graphql',
 				plugins: [parserGraphql],
 			}),
 			requestGQLVariables: JSON.stringify(e.request.variables, null, 3),
 			requestPostData: null,
-			responseStatusCode: entry.response.status,
-			responseStatusMessage: entry.response.statusMessage,
+			responseStatusCode: e.response.status,
+			responseStatusMessage: e.response.statusMessage,
 			responsePayload: responsePayload ? responsePayload : 'No response',
 		};
 	} else {
@@ -78,13 +85,14 @@ async function normalizeEntry(entry: Entry): Promise<RequestItem> {
 			type: 'XHR',
 			method: e.request.method,
 			headers: e.request.headers,
-			time: entry.time,
+			time: e.time,
+			requestDomain: e.request.url.replace(new RegExp(`${escapeRegExp(e.request.pathname)}.*`), ''),
 			requestQueryString: JSON.stringify(e.request.query, null, 3),
 			requestGQLQuery: null,
 			requestGQLVariables: null,
 			requestPostData: JSON.stringify(e.request.body, null, 3),
-			responseStatusCode: entry.response.status,
-			responseStatusMessage: entry.response.statusMessage,
+			responseStatusCode: e.response.status,
+			responseStatusMessage: e.response.statusMessage,
 			responsePayload: responsePayload ? responsePayload : 'No response',
 		};
 	}
@@ -139,7 +147,8 @@ const App: Component = () => {
 										onClick={() => setSelectedEntry(entry)}
 										title={entry.name}
 									>
-										<div class="mb-2 overflow-hidden text-ellipsis whitespace-nowrap">{entry.name}</div>
+										<div class="mb-1 overflow-hidden text-ellipsis whitespace-nowrap">{entry.name}</div>
+										<div class="mb-2 text-xs text-base-content/50">{entry.requestDomain}</div>
 										<div class="flex flex-row items-center gap-2">
 											<div class="badge badge-primary badge-xs font-mono">{entry.type}</div>
 											<div class="badge badge-secondary badge-xs font-mono">{entry.method}</div>
@@ -159,10 +168,13 @@ const App: Component = () => {
 				{getSelectedEntry() ? (
 					<>
 						<div class="basis-3/6 overflow-y-auto border-r border-solid border-neutral p-2">
-							<h2 class="mb-4 flex flex-row items-center gap-2 text-lg">
-								{getSelectedEntry().name}
-								<div class="badge badge-primary font-mono">{getSelectedEntry().type}</div>
-								<div class="badge badge-secondary font-mono">{getSelectedEntry().method}</div>
+							<h2 class="mb-4 text-lg">
+								<div class="flex flex-row items-center gap-2 ">
+									{getSelectedEntry().name}
+									<div class="badge badge-primary font-mono">{getSelectedEntry().type}</div>
+									<div class="badge badge-secondary font-mono">{getSelectedEntry().method}</div>
+								</div>
+								{getSelectedEntry().requestDomain && <span class="text-xs accent-gray-500">{getSelectedEntry().requestDomain}</span>}{' '}
 							</h2>
 							<div class="mb-3">
 								<h3 class="mb-2 text-base">Headers</h3>
