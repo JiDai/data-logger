@@ -1,117 +1,25 @@
 import clsx from 'clsx';
 import { formatRelative } from 'date-fns/formatRelative';
-import { Header } from 'har-format';
 import hljs from 'highlight.js/lib/core';
 import gqlLanguage from 'highlight.js/lib/languages/graphql.js';
 import jsonLanguage from 'highlight.js/lib/languages/json';
 import 'highlight.js/styles/atom-one-dark.css';
 import jp from 'jsonpath';
-import * as prettier from 'prettier';
-import parserGraphql from 'prettier/plugins/graphql';
-import { Component, JSX, createEffect, createSignal } from 'solid-js';
+import { Component, createEffect, createSignal } from 'solid-js';
 
 import * as store from './store';
-import { Entry, GQLEntry, HTTPEntry } from './types';
-import { isGQLEntry } from './utils';
 
 hljs.registerLanguage('graphql', gqlLanguage);
 hljs.registerLanguage('json', jsonLanguage);
-
-type RequestItem = {
-	id: string;
-	timestamp: number;
-	name: string;
-	type: string;
-	method: string;
-	responseStatusCode: number;
-	responseStatusMessage: string;
-	time: number;
-	headers: Array<Header>;
-	requestDomain: string;
-	requestQueryString: string;
-	requestGQLQuery: string;
-	requestGQLVariables: string;
-	requestPostData: string;
-	responsePayload: string;
-};
 
 function clearList() {
 	store.setEntries([]);
 }
 
-function escapeRegExp(string) {
-	return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
-
-async function normalizeEntry(entry: Entry): Promise<RequestItem> {
-	let responsePayload = null;
-	try {
-		responsePayload = typeof entry.response.getResponse === 'function' ? await entry.response.getResponse() : null;
-	} catch (error) {
-		console.warn(`Unable to get response body for entry: ${entry.id}`, error);
-	}
-
-	console.log('entry.request: ', entry.request);
-	let data: RequestItem;
-	if (isGQLEntry(entry)) {
-		const e = entry as GQLEntry;
-		data = {
-			id: e.id,
-			timestamp: e.timestamp,
-			name: `${e.request.operationType} ${e.request.name}`,
-			type: 'GQL',
-			method: e.request.method,
-			headers: e.request.headers,
-			time: e.time,
-			requestDomain: e.request.url,
-			requestQueryString: null,
-			requestGQLQuery: await prettier.format(e.request.query, {
-				semi: false,
-				parser: 'graphql',
-				plugins: [parserGraphql],
-			}),
-			requestGQLVariables: JSON.stringify(e.request.variables, null, 3),
-			requestPostData: null,
-			responseStatusCode: e.response.status,
-			responseStatusMessage: e.response.statusMessage,
-			responsePayload: responsePayload ? responsePayload : 'No response',
-		};
-	} else {
-		const e = entry as HTTPEntry;
-		data = {
-			id: e.id,
-			timestamp: e.timestamp,
-			name: e.request.name,
-			type: 'XHR',
-			method: e.request.method,
-			headers: e.request.headers,
-			time: e.time,
-			requestDomain: e.request.url.replace(new RegExp(`${escapeRegExp(e.request.pathname)}.*`), ''),
-			requestQueryString: JSON.stringify(e.request.query, null, 3),
-			requestGQLQuery: null,
-			requestGQLVariables: null,
-			requestPostData: JSON.stringify(e.request.body, null, 3),
-			responseStatusCode: e.response.status,
-			responseStatusMessage: e.response.statusMessage,
-			responsePayload: responsePayload ? responsePayload : 'No response',
-		};
-	}
-	return data;
-}
-
 const App: Component = () => {
-	const [getEntries, setEntries] = createSignal([]);
 	const [getSelectedEntry, setSelectedEntry] = createSignal(null);
 	const [getResponsePayloadJSONPathFilter, setResponsePayloadJSONPathFilter] = createSignal(null);
 	const [getResponsePayload, setResponsePayload] = createSignal(null);
-
-	createEffect(async () => {
-		const newEntries = [];
-		for (const entry of store.entries) {
-			newEntries.push(await normalizeEntry(entry));
-		}
-		setEntries(newEntries);
-	});
 
 	createEffect(function () {
 		let payload = '';
@@ -136,7 +44,7 @@ const App: Component = () => {
 			<div class="flex h-full flex-row items-stretch gap-x-2">
 				<div class="flex w-[20rem] basis-[20rem] flex-col border-r border-solid border-neutral">
 					<div class="grow overflow-y-auto">
-						{getEntries()
+						{store.entries
 							.sort((a, b) => b.timestamp - a.timestamp)
 							.map((entry) => {
 								return (

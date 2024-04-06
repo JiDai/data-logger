@@ -1,86 +1,104 @@
-import type { OperationTypeNode } from 'graphql'
-import type { Header, Param, Entry as _HAREntry } from 'har-format'
-import type { QueryObject } from 'ufo'
+import type { OperationTypeNode } from 'graphql';
+import { Header, Param, Entry as _HAREntry } from 'har-format';
+import type { QueryObject } from 'ufo';
 
 export interface ButtonGroupItem {
-  name: string
-  title: string
-  label?: string
+	name: string;
+	title: string;
+	label?: string;
 }
 
 export interface HAREntry extends _HAREntry {
-  _resourceType: 'xhr' | 'fetch' | 'preflight'
-  getContent: () => Promise<[string, string]>
+	_resourceType: 'xhr' | 'fetch' | 'preflight';
+	getContent: () => Promise<[string, string]>;
 }
 
 interface BaseEntryRequest {
-  url: string
-  headers: Header[]
-  preflightHeaders?: Header[]
-  mimeType?: string
-  method: string
+	url: string;
+	headers: Header[];
+	preflightHeaders?: Header[];
+	mimeType?: string;
+	method: string;
 }
 
 interface BaseEntryResponse {
-  status: number
-  statusMessage?: string
-  isError: boolean
-  headers: Header[]
-  preflightHeaders?: Header[]
-  mimeType: string
+	status: number;
+	statusMessage?: string;
+	isError: boolean;
+	headers: Header[];
+	preflightHeaders?: Header[];
+	mimeType: string;
 }
 
 export interface BaseEntry {
-  id: string
-  time: number
-  timestamp: number
-  request: BaseEntryRequest
-  response: BaseEntryResponse
+	id: string;
+	time: number;
+	timestamp: number;
+	request: BaseEntryRequest;
+	response: BaseEntryResponse;
 }
 
 interface HTTPEntryRequest extends BaseEntryRequest {
-  name: string
-  host?: string
-  pathname: string
-  queryString: string
-  query: QueryObject
-  body: any
-  params?: Param[]
+	name: string;
+	host?: string;
+	pathname: string;
+	queryString: string;
+	query: QueryObject;
+	body: any;
+	params?: Param[];
 }
 
 interface HTTPEntryResponse extends BaseEntryResponse {
-  getResponse: () => Promise<any>
+	getResponse: () => Promise<any>;
 }
 
 export interface HTTPEntry extends BaseEntry {
-  type: string
-  request: HTTPEntryRequest
-  response: HTTPEntryResponse
+	type: string;
+	request: HTTPEntryRequest;
+	response: HTTPEntryResponse;
 }
 
 interface GQLEntryRequest extends BaseEntryRequest {
-  name?: string
-  operations: string[]
-  operationType: OperationTypeNode
-  query: any
-  variables: any
-  batch?: {
-    length: number
-    count: number
-  }
+	name?: string;
+	operations: string[];
+	operationType: OperationTypeNode;
+	query: any;
+	variables: any;
+	batch?: {
+		length: number;
+		count: number;
+	};
 }
 
 interface GQLEntryResponse extends BaseEntryResponse {
-  getResponse: () => Promise<{
-    data?: any
-    errors?: any[]
-  }>
+	getResponse: () => Promise<{
+		data?: any;
+		errors?: any[];
+	}>;
 }
 
 export interface GQLEntry extends BaseEntry {
-  type: string
-  request: GQLEntryRequest
-  response: GQLEntryResponse
+	type: string;
+	request: GQLEntryRequest;
+	response: GQLEntryResponse;
 }
 
-export type Entry = HTTPEntry | GQLEntry
+export type Entry = HTTPEntry | GQLEntry;
+
+export type RequestItem = {
+	id: string;
+	timestamp: number;
+	name: string;
+	type: string;
+	method: string;
+	responseStatusCode: number;
+	responseStatusMessage: string;
+	time: number;
+	headers: Array<Header>;
+	requestDomain: string;
+	requestQueryString: string;
+	requestGQLQuery: string;
+	requestGQLVariables: string;
+	requestPostData: string;
+	responsePayload: string;
+};
