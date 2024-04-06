@@ -20,6 +20,16 @@ function escapeRegExp(string) {
 	return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
+const acceptedMimeTypes = [/application\/json/, /image\/.*/];
+function isAcceptedEntry(entry: Entry) {
+	return (
+		entry.request.method !== 'OPTIONS' &&
+		acceptedMimeTypes.findIndex((acceptedMimeTypeRegEx) => {
+			return acceptedMimeTypeRegEx.test(entry.response.mimeType);
+		}) >= 0
+	);
+}
+
 async function normalizeEntry(entry: Entry): Promise<RequestItem> {
 	let responsePayload = null;
 	try {
@@ -28,7 +38,6 @@ async function normalizeEntry(entry: Entry): Promise<RequestItem> {
 		console.warn(`Unable to get response body for entry: ${entry.id}`, error);
 	}
 
-	console.log('entry.request: ', entry.request);
 	let data: RequestItem;
 	if (isGQLEntry(entry)) {
 		const e = entry as GQLEntry;
@@ -85,36 +94,45 @@ if (import.meta.env.DEV) {
 				const parsedEntries = await parseGQLEntry(harEntry);
 				if (Array.isArray(parsedEntries)) {
 					for (const parsedEntry of parsedEntries) {
-						if (parsedEntry.request.method !== 'OPTIONS') setEntries([...entries, await normalizeEntry(parsedEntry)]);
+						if (isAcceptedEntry(parsedEntry)) {
+							setEntries([...entries, await normalizeEntry(parsedEntry)]);
+						}
 					}
 				} else {
-					if (parsedEntries.request.method !== 'OPTIONS') setEntries([...entries, await normalizeEntry(parsedEntries)]);
+					if (isAcceptedEntry(parsedEntries)) {
+						setEntries([...entries, await normalizeEntry(parsedEntries)]);
+					}
 				}
 			} else {
-				//  if (isHTTP(harEntry)) not working on firefox
 				// @ts-expect-error Incorrect types
 				const parsed = parseHTTPEntry(harEntry);
-				if (parsed.request.method !== 'OPTIONS') setEntries([...entries, await normalizeEntry(parsed)]);
+				if (isAcceptedEntry(parsed)) {
+					setEntries([...entries, await normalizeEntry(parsed)]);
+				}
 			}
 		}
 	})();
 } else {
 	// @ts-expect-error Incorrect types
 	browser.devtools.network.onRequestFinished.addListener(async (harEntry: HAREntry) => {
-		console.log('harEntry: ', harEntry);
 		if (isGraphQL(harEntry)) {
 			const parsedEntries = await parseGQLEntry(harEntry);
 			if (Array.isArray(parsedEntries)) {
 				for (const parsedEntry of parsedEntries) {
-					if (parsedEntry.request.method !== 'OPTIONS') setEntries([...entries, await normalizeEntry(parsedEntry)]);
+					if (isAcceptedEntry(parsedEntry)) {
+						setEntries([...entries, await normalizeEntry(parsedEntry)]);
+					}
 				}
 			} else {
-				if (parsedEntries.request.method !== 'OPTIONS') setEntries([...entries, await normalizeEntry(parsedEntries)]);
+				if (isAcceptedEntry(parsedEntries)) {
+					setEntries([...entries, await normalizeEntry(parsedEntries)]);
+				}
 			}
 		} else {
-			//  if (isHTTP(harEntry)) not working on firefox
 			const parsed = parseHTTPEntry(harEntry);
-			if (parsed.request.method !== 'OPTIONS') setEntries([...entries, await normalizeEntry(parsed)]);
+			if (isAcceptedEntry(parsed)) {
+				setEntries([...entries, await normalizeEntry(parsed)]);
+			}
 		}
 	});
 }
