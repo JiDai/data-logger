@@ -1,19 +1,20 @@
-import type { DefinitionNode, FieldNode, InlineFragmentNode, OperationDefinitionNode, OperationTypeNode, SelectionNode } from "graphql";
-import type { Header, Param } from "har-format";
-import { Kind, parse } from "graphql";
-import { getQuery, parseURL } from "ufo";
-import { randomUUID } from "uncrypto";
-import httpStatus from "http-status";
-import prettier from "prettier/standalone";
+import xmlParser from '@prettier/plugin-xml';
+import type { DefinitionNode, FieldNode, InlineFragmentNode, OperationDefinitionNode, OperationTypeNode, SelectionNode } from 'graphql';
+import { Kind, parse } from 'graphql';
+import type { Header, Param } from 'har-format';
+import httpStatus from 'http-status';
 // @ts-expect-error - no types
-import htmlParser from "prettier/parser-html";
-import xmlParser from "@prettier/plugin-xml";
-import type { BaseEntry, Entry, GQLEntry, HAREntry, HTTPEntry } from "../types";
+import htmlParser from 'prettier/parser-html';
+import prettier from 'prettier/standalone';
+import { getQuery, parseURL } from 'ufo';
+import { randomUUID } from 'uncrypto';
+
+import type { BaseEntry, Entry, GQLEntry, HAREntry, HTTPEntry } from '../types';
 
 class ParseResponseError extends Error {
 	constructor(message = "Cant't parse response content") {
 		super(message);
-		this.name = "ParseResponseError";
+		this.name = 'ParseResponseError';
 	}
 }
 
@@ -44,7 +45,9 @@ function isField(node: SelectionNode): node is FieldNode {
 }
 
 function isContentType(request: { headers: Header[] }, contentType: string) {
-	return request.headers.some(({ name, value }) => name.toLowerCase() === "content-type" && value.split(";").at(0)?.toLowerCase() === contentType.toLowerCase());
+	return request.headers.some(
+		({ name, value }) => name.toLowerCase() === 'content-type' && value.split(';').at(0)?.toLowerCase() === contentType.toLowerCase(),
+	);
 }
 
 function isOperationDefinition(node: DefinitionNode): node is OperationDefinitionNode {
@@ -64,7 +67,7 @@ function isValidQuery(query: string) {
 function getName(node: SelectionNode): string {
 	if (isInlineFragment(node) && node.typeCondition) return `InlineFragment if ${node.typeCondition.name.value}`;
 	else if (isField(node)) return node.alias ? `${node.alias.value}: ${node.name.value}` : node.name.value;
-	else return "Anonymous";
+	else return 'Anonymous';
 }
 
 function parseOperation(definition: SelectionNode) {
@@ -92,11 +95,12 @@ function parseQuery(query: string): ParsedQueryDefinition[] {
 }
 
 export function isGQLEntry(entry: Entry): entry is GQLEntry {
-	return entry?.type === "GQL";
+	return entry?.type === 'GQL';
 }
 
+// Not working on Firefox
 export function isHTTP(entry: HAREntry) {
-	return ["xhr", "fetch", "preflight"].includes(entry._resourceType);
+	return ['xhr', 'fetch', 'preflight'].includes(entry._resourceType);
 }
 
 export function isGraphQL(entry: HAREntry) {
@@ -104,10 +108,10 @@ export function isGraphQL(entry: HAREntry) {
 
 	let query: string | undefined;
 
-	if (isContentType(entry.request, "application/json")) {
-		if (entry.request.method === "GET") {
-			query = getQueryValue("query", entry.request.queryString);
-		} else if (entry.request.method === "POST" && text) {
+	if (isContentType(entry.request, 'application/json')) {
+		if (entry.request.method === 'GET') {
+			query = getQueryValue('query', entry.request.queryString);
+		} else if (entry.request.method === 'POST' && text) {
 			try {
 				const json = JSON.parse(text);
 				query = Array.isArray(json) ? json.at(0).query : json.query;
@@ -115,8 +119,8 @@ export function isGraphQL(entry: HAREntry) {
 				return false;
 			}
 		}
-	} else if (isContentType(entry.request, "application/x-www-form-urlencoded") && params) {
-		query = getQueryValue("query", params);
+	} else if (isContentType(entry.request, 'application/x-www-form-urlencoded') && params) {
+		query = getQueryValue('query', params);
 	}
 
 	return !!query && isValidQuery(query);
@@ -166,11 +170,14 @@ export async function parseGQLEntry(entry: HAREntry): Promise<GQLEntry | GQLEntr
 
 	let json: ParsedQuery | null = null;
 
-	if ((isContentType(entry.request, "application/json") && entry.request.method === "GET") || isContentType(entry.request, "application/x-www-form-urlencoded")) {
-		const params = entry.request.method === "GET" ? queryString : postData?.params;
-		const query = getQueryValue("query", params);
-		const variables = getQueryValue("variables", params);
-		const operationName = getQueryValue("operationName", params);
+	if (
+		(isContentType(entry.request, 'application/json') && entry.request.method === 'GET') ||
+		isContentType(entry.request, 'application/x-www-form-urlencoded')
+	) {
+		const params = entry.request.method === 'GET' ? queryString : postData?.params;
+		const query = getQueryValue('query', params);
+		const variables = getQueryValue('variables', params);
+		const operationName = getQueryValue('operationName', params);
 
 		if (query) {
 			json = {
@@ -194,7 +201,7 @@ export async function parseGQLEntry(entry: HAREntry): Promise<GQLEntry | GQLEntr
 		let { variables } = batchItem;
 
 		try {
-			variables = typeof variables === "string" ? JSON.parse(variables) : variables;
+			variables = typeof variables === 'string' ? JSON.parse(variables) : variables;
 		} catch (e: any) {
 			console.warn(`Internal Error Parsing: ${entry}. Message: ${e.message}. Stack: ${e.stack}`);
 			return [];
@@ -228,7 +235,7 @@ export async function parseGQLEntry(entry: HAREntry): Promise<GQLEntry | GQLEntr
 
 			return {
 				...base,
-				type: "GQL",
+				type: 'GQL',
 				request: {
 					...request,
 					name: operationName || name,
@@ -253,7 +260,7 @@ export async function parseGQLEntry(entry: HAREntry): Promise<GQLEntry | GQLEntr
 async function getContent(entry: HAREntry) {
 	const [body] = await entry.getContent();
 
-	if (!isContentType(entry.response, "application/json")) return body;
+	if (!isContentType(entry.response, 'application/json')) return body;
 
 	try {
 		return JSON.parse(body);
@@ -291,8 +298,8 @@ function getEntryInfo(entry: HAREntry): BaseEntry {
 }
 
 export function formatData(data: string, mimeType: string) {
-	if (["text/html", "application/html"].includes(mimeType)) return prettier.format(data, { semi: false, parser: "html", plugins: [htmlParser] });
-	else if (["application/xml", "text/xml"].includes(mimeType)) return prettier.format(data, { semi: false, parser: "xml", plugins: [xmlParser] });
-	else if (["application/json", "text/json"].includes(mimeType)) return JSON.stringify(data, null, 2);
+	if (['text/html', 'application/html'].includes(mimeType)) return prettier.format(data, { semi: false, parser: 'html', plugins: [htmlParser] });
+	else if (['application/xml', 'text/xml'].includes(mimeType)) return prettier.format(data, { semi: false, parser: 'xml', plugins: [xmlParser] });
+	else if (['application/json', 'text/json'].includes(mimeType)) return JSON.stringify(data, null, 2);
 	else return data;
 }
