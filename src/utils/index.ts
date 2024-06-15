@@ -1,10 +1,10 @@
-import xmlParser from '@prettier/plugin-xml';
+import { PrettierConfig } from '@trivago/prettier-plugin-sort-imports';
 import type { DefinitionNode, FieldNode, InlineFragmentNode, OperationDefinitionNode, OperationTypeNode, SelectionNode } from 'graphql';
 import { Kind, parse } from 'graphql';
 import type { Header, Param } from 'har-format';
+import hljs from 'highlight.js/lib/core';
 import httpStatus from 'http-status';
-// @ts-expect-error - no types
-import htmlParser from 'prettier/parser-html';
+import prettierPluginHTML from 'prettier/plugins/html';
 import prettier from 'prettier/standalone';
 import { getQuery, parseURL } from 'ufo';
 import { randomUUID } from 'uncrypto';
@@ -297,9 +297,32 @@ function getEntryInfo(entry: HAREntry): BaseEntry {
 	};
 }
 
-export function formatData(data: string, mimeType: string) {
-	if (['text/html', 'application/html'].includes(mimeType)) return prettier.format(data, { semi: false, parser: 'html', plugins: [htmlParser] });
-	else if (['application/xml', 'text/xml'].includes(mimeType)) return prettier.format(data, { semi: false, parser: 'xml', plugins: [xmlParser] });
-	else if (['application/json', 'text/json'].includes(mimeType)) return JSON.stringify(data, null, 2);
-	else return data;
+export async function formatAndHighlight(data: string, type: 'json' | 'xml' | 'html') {
+	const prettierConfig = {
+		bracketSameLine: false,
+		bracketSpacing: true,
+		semi: false,
+		singleQuote: false,
+		trailingComma: 'all',
+		htmlWhitespaceSensitivity: 'css',
+		proseWrap: 'preserve',
+		insertPragma: false,
+		printWidth: 80,
+		tabWidth: 3,
+		useTabs: false,
+	} as PrettierConfig;
+
+	switch (type) {
+		case 'json':
+			return hljs.highlight(JSON.stringify(data, null, 3), { language: 'json' }).value;
+		case 'xml':
+			return hljs.highlight(await prettier.format(data, { ...prettierConfig, parser: 'html', plugins: [prettierPluginHTML] }), { language: 'xml' })
+				.value;
+		case 'html':
+			return hljs.highlight(await prettier.format(data, { ...prettierConfig, parser: 'html', plugins: [prettierPluginHTML] }), {
+				language: 'html',
+			}).value;
+		default:
+			console.warn(`Wrong type provided (${type}) for formatting.`);
+	}
 }

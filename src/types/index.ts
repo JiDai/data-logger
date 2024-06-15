@@ -89,7 +89,7 @@ export type RequestItem = {
 	id: string;
 	timestamp: number;
 	name: string;
-	type: string;
+	type: 'GQL' | 'JSON' | 'XML' | 'SVG' | 'IMG' | 'HTML' | 'Other';
 	method: string;
 	responseStatusCode: number;
 	responseStatusMessage: string;
@@ -101,4 +101,5 @@ export type RequestItem = {
 	requestGQLVariables: string;
 	requestPostData: string;
 	responsePayload: string;
+	responseMimeType: string;
 };

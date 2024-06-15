@@ -7,3 +7,15 @@ body, html, #root {
 }
 
 pre { margin-top: 0 }
+
+.img-wrapper-background {
+   background: conic-gradient(
+      #FAFAFA 90deg,
+      #fff 90deg 180deg,
+      #FAFAFA 180deg 270deg,
+      #fff 270deg
+   );
+   background-repeat: repeat;
+   background-size: 32px 32px;
+   background-position: top left;
+}

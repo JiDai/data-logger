@@ -20,7 +20,8 @@ function escapeRegExp(string) {
 	return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-const acceptedMimeTypes = [/application\/json/, /image\/.*/];
+const acceptedMimeTypes = [/application\/json/, /text\/.*/, /image\/.*/];
+
 function isAcceptedEntry(entry: Entry) {
 	return (
 		entry.request.method !== 'OPTIONS' &&
@@ -38,8 +39,24 @@ async function normalizeEntry(entry: Entry): Promise<RequestItem> {
 		console.warn(`Unable to get response body for entry: ${entry.id}`, error);
 	}
 
-	let data: RequestItem;
+	let requestType: RequestItem['type'] = 'Other';
+	console.log('entry.response.mimeType: ', entry.response.mimeType);
 	if (isGQLEntry(entry)) {
+		requestType = 'GQL';
+	} else if (/application\/json/.test(entry.response.mimeType)) {
+		requestType = 'JSON';
+	} else if (/text\/html/.test(entry.response.mimeType)) {
+		requestType = 'XML';
+	} else if (/text\/xml/.test(entry.response.mimeType)) {
+		requestType = 'XML';
+	} else if (/image\/svg\+xml.*/.test(entry.response.mimeType)) {
+		requestType = 'SVG';
+	} else if (/image\/.*/.test(entry.response.mimeType)) {
+		requestType = 'IMG';
+	}
+
+	let data: RequestItem;
+	if (requestType === 'GQL') {
 		const e = entry as GQLEntry;
 		data = {
 			id: e.id,
@@ -61,6 +78,7 @@ async function normalizeEntry(entry: Entry): Promise<RequestItem> {
 			responseStatusCode: e.response.status,
 			responseStatusMessage: e.response.statusMessage,
 			responsePayload: responsePayload ? responsePayload : 'No response',
+			responseMimeType: e.response.mimeType,
 		};
 	} else {
 		const e = entry as HTTPEntry;
@@ -68,7 +86,7 @@ async function normalizeEntry(entry: Entry): Promise<RequestItem> {
 			id: e.id,
 			timestamp: e.timestamp,
 			name: e.request.name,
-			type: 'XHR',
+			type: requestType,
 			method: e.request.method,
 			headers: e.request.headers,
 			time: e.time,
@@ -80,6 +98,7 @@ async function normalizeEntry(entry: Entry): Promise<RequestItem> {
 			responseStatusCode: e.response.status,
 			responseStatusMessage: e.response.statusMessage,
 			responsePayload: responsePayload ? responsePayload : 'No response',
+			responseMimeType: e.response.mimeType,
 		};
 	}
 	return data;

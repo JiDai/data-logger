@@ -3,36 +3,59 @@ import { formatRelative } from 'date-fns/formatRelative';
 import hljs from 'highlight.js/lib/core';
 import gqlLanguage from 'highlight.js/lib/languages/graphql.js';
 import jsonLanguage from 'highlight.js/lib/languages/json';
+import xmlLanguage from 'highlight.js/lib/languages/xml';
 import 'highlight.js/styles/atom-one-dark.css';
 import jp from 'jsonpath';
 import { Component, createEffect, createSignal } from 'solid-js';
 
 import * as store from './store';
+import { setSettings, settings } from './store';
+import { RequestItem } from './types';
+import { formatAndHighlight } from './utils';
 
 hljs.registerLanguage('graphql', gqlLanguage);
 hljs.registerLanguage('json', jsonLanguage);
+hljs.registerLanguage('xml', xmlLanguage);
 
 function clearList() {
 	store.setEntries([]);
 }
 
 const App: Component = () => {
-	const [getSelectedEntry, setSelectedEntry] = createSignal(null);
+	const [getSelectedEntry, setSelectedEntry] = createSignal<RequestItem>(null);
 	const [getResponsePayloadJSONPathFilter, setResponsePayloadJSONPathFilter] = createSignal(null);
-	const [getResponsePayload, setResponsePayload] = createSignal(null);
+	const [getResponsePayloadHighlighted, setResponsePayloadHighlighted] = createSignal(null);
 
-	createEffect(function () {
+	createEffect(async function () {
 		let payload = '';
-		if (getSelectedEntry()?.responsePayload && getResponsePayloadJSONPathFilter()) {
-			try {
-				payload = jp.query(getSelectedEntry()?.responsePayload, getResponsePayloadJSONPathFilter());
-			} catch (error) {
-				console.log('jsonpath error', error);
-			}
-		} else if (getSelectedEntry()?.responsePayload) {
-			payload = getSelectedEntry().responsePayload;
+		switch (getSelectedEntry()?.type) {
+			case 'JSON':
+				if (getSelectedEntry()?.responsePayload && getResponsePayloadJSONPathFilter()) {
+					try {
+						payload = jp.query(getSelectedEntry()?.responsePayload, getResponsePayloadJSONPathFilter());
+					} catch (error) {
+						console.error('jsonpath error', error);
+					}
+				} else if (getSelectedEntry()?.responsePayload) {
+					payload = getSelectedEntry().responsePayload;
+				}
+
+				setResponsePayloadHighlighted(await formatAndHighlight(payload, 'json'));
+				break;
+			case 'GQL':
+				setResponsePayloadHighlighted(await formatAndHighlight(getSelectedEntry().responsePayload, 'json'));
+				break;
+			case 'SVG':
+			case 'XML':
+				setResponsePayloadHighlighted(await formatAndHighlight(getSelectedEntry()?.responsePayload, 'xml'));
+				break;
+			case 'HTML':
+				setResponsePayloadHighlighted(await formatAndHighlight(getSelectedEntry()?.responsePayload, 'html'));
+				break;
+			default:
+				setResponsePayloadHighlighted(getSelectedEntry()?.responsePayload);
+				break;
 		}
-		setResponsePayload(hljs.highlight(JSON.stringify(payload, null, 3), { language: 'json' }).value);
 	});
 
 	function responsePayloadJSONChangeHandler(event) {
@@ -42,9 +65,27 @@ const App: Component = () => {
 	return (
 		<div class="h-full text-xs">
 			<div class="flex h-full flex-row items-stretch gap-x-2">
-				<div class="flex w-[20rem] basis-[20rem] flex-col border-r border-solid border-neutral">
+				<div class="flex w-[22rem] shrink-0 basis-[22rem] flex-col border-r border-solid border-neutral">
 					<div class="grow overflow-y-auto">
 						{store.entries
+							.filter((entry) => {
+								if (
+									!settings.filters.Img &&
+									!settings.filters.GQL &&
+									!settings.filters.JSON &&
+									!settings.filters.XML &&
+									!settings.filters.Other
+								) {
+									return true;
+								}
+								return (
+									(settings.filters.Img && entry.type === 'IMG') ||
+									(settings.filters.GQL && entry.type === 'GQL') ||
+									(settings.filters.JSON && entry.type === 'JSON') ||
+									(settings.filters.XML && entry.type === 'XML') ||
+									(settings.filters.Other && entry.type === 'Other')
+								);
+							})
 							.sort((a, b) => b.timestamp - a.timestamp)
 							.map((entry) => {
 								return (
@@ -66,10 +107,80 @@ const App: Component = () => {
 								);
 							})}
 					</div>
-					<div class="mt-auto border-t border-solid border-neutral bg-base-200 p-2">
-						<button class="btn btn-neutral btn-xs" onClick={clearList}>
-							Clear
-						</button>
+					<div class="mt-auto flex items-center justify-between border-t border-solid border-neutral bg-base-200 p-2">
+						<div>
+							<button class="btn btn-neutral btn-xs mr-2" onClick={clearList}>
+								Clear
+							</button>
+							<div class="join">
+								<input
+									class="active btn join-item btn-neutral btn-xs mr-0.5"
+									type="radio"
+									name="filterRequestType"
+									onClick={() =>
+										setSettings({
+											filters: { GQL: false, JSON: false, XML: false, Img: false, Other: false },
+										})
+									}
+									aria-label="All"
+								/>
+								<input
+									class="btn join-item btn-neutral btn-xs mr-0.5"
+									type="radio"
+									name="filterRequestType"
+									onClick={() =>
+										setSettings({
+											filters: { GQL: true, JSON: false, XML: false, Img: false, Other: false },
+										})
+									}
+									aria-label="GQL"
+								/>
+								<input
+									class="btn join-item btn-neutral btn-xs mr-0.5"
+									type="radio"
+									name="filterRequestType"
+									onClick={() =>
+										setSettings({
+											filters: { GQL: false, JSON: true, XML: false, Img: false, Other: false },
+										})
+									}
+									aria-label="JSON"
+								/>
+								<input
+									class="btn join-item btn-neutral btn-xs mr-0.5"
+									type="radio"
+									name="filterRequestType"
+									onClick={() =>
+										setSettings({
+											filters: { GQL: false, JSON: false, XML: true, Img: false, Other: false },
+										})
+									}
+									aria-label="XML"
+								/>
+								<input
+									class="btn join-item btn-neutral btn-xs mr-0.5"
+									type="radio"
+									name="filterRequestType"
+									onClick={() =>
+										setSettings({
+											filters: { GQL: false, JSON: false, XML: false, Img: true, Other: false },
+										})
+									}
+									aria-label="Img"
+								/>
+								<input
+									class="btn join-item btn-neutral btn-xs mr-0.5"
+									type="radio"
+									name="filterRequestType"
+									onClick={() =>
+										setSettings({
+											filters: { GQL: false, JSON: false, XML: false, Img: false, Other: true },
+										})
+									}
+									aria-label="Other"
+								/>
+							</div>
+						</div>
 					</div>
 				</div>
 
@@ -146,41 +257,65 @@ const App: Component = () => {
 										{getSelectedEntry().responseStatusCode} {getSelectedEntry().responseStatusMessage}
 									</span>
 									<span class="ml-3 font-thin">{getSelectedEntry().time}ms</span>
+									<span class="ml-3 font-thin">{getSelectedEntry().responseMimeType}</span>
 								</h2>
-								{getSelectedEntry().responsePayload && (
+								{['JSON', 'GQL', 'XML'].includes(getSelectedEntry().type) && getSelectedEntry().responsePayload && (
 									<pre class="mt-0">
-										<code class="hljs" innerHTML={getResponsePayload()}></code>
+										<code class="hljs" innerHTML={getResponsePayloadHighlighted()}></code>
 									</pre>
 								)}
-							</div>
-							<div class="mt-auto flex items-center justify-between border-t border-solid border-neutral bg-base-200">
-								<input
-									type="text"
-									value={getResponsePayloadJSONPathFilter()}
-									placeholder="Filter with JSONPath"
-									class="bg-transparent p-2 outline-none ring-0"
-									onChange={responsePayloadJSONChangeHandler}
-								/>
-								{getResponsePayloadJSONPathFilter() && (
-									<button class="mr-2">
-										<svg
-											xmlns="http://www.w3.org/2000/svg"
-											fill="none"
-											viewBox="0 0 24 24"
-											stroke-width={1.5}
-											stroke="currentColor"
-											class="h-6 w-6"
-											onClick={() => setResponsePayloadJSONPathFilter('')}
-										>
-											<path
-												stroke-linecap="round"
-												stroke-linejoin="round"
-												d="m9.75 9.75 4.5 4.5m0-4.5-4.5 4.5M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"
+								{getSelectedEntry().type === 'SVG' && (
+									<div>
+										<div class="img-wrapper-background mb-3 flex max-w-full items-center justify-center p-4">
+											<div innerHTML={getSelectedEntry().responsePayload}></div>
+										</div>
+										<h3 class="mb-2 text-base">Raw content</h3>
+										<pre class="mt-0 max-w-full">
+											<code class="hljs" innerHTML={getResponsePayloadHighlighted()}></code>
+										</pre>
+									</div>
+								)}
+								{getSelectedEntry().type === 'IMG' && (
+									<div>
+										<div class="img-wrapper-background mb-3 flex max-w-full items-center justify-center p-4 ">
+											<img
+												src={`data:${getSelectedEntry().responseMimeType};base64,${getSelectedEntry().responsePayload}`}
+												alt="Preview image of response"
 											/>
-										</svg>
-									</button>
+										</div>
+									</div>
 								)}
 							</div>
+							{getSelectedEntry().type === 'JSON' && (
+								<div class="mt-auto flex items-center justify-between border-t border-solid border-neutral bg-base-200">
+									<input
+										type="text"
+										value={getResponsePayloadJSONPathFilter()}
+										placeholder="Filter with JSONPath"
+										class="bg-transparent p-2 outline-none ring-0"
+										onChange={responsePayloadJSONChangeHandler}
+									/>
+									{getResponsePayloadJSONPathFilter() && (
+										<button class="mr-2">
+											<svg
+												xmlns="http://www.w3.org/2000/svg"
+												fill="none"
+												viewBox="0 0 24 24"
+												stroke-width={1.5}
+												stroke="currentColor"
+												class="h-6 w-6"
+												onClick={() => setResponsePayloadJSONPathFilter('')}
+											>
+												<path
+													stroke-linecap="round"
+													stroke-linejoin="round"
+													d="m9.75 9.75 4.5 4.5m0-4.5-4.5 4.5M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"
+												/>
+											</svg>
+										</button>
+									)}
+								</div>
+							)}
 						</div>
 					</>
 				) : null}

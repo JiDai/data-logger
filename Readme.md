@@ -28,6 +28,9 @@ Run a standalone app with fixtures (not working well).
 
 The task will build with watching.
 
+Tip : Try GraphQL request with https://swapi-graphql.eskerda.vercel.app/
+
+
 ## Todo
 
 - Use `formatData` to handle more response type
