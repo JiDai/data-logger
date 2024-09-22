@@ -1,12 +1,6 @@
+import type { Header, Param, Entry as _HAREntry } from 'har-format';
 import type { OperationTypeNode } from 'graphql';
-import { Header, Param, Entry as _HAREntry } from 'har-format';
 import type { QueryObject } from 'ufo';
-
-export interface ButtonGroupItem {
-	name: string;
-	title: string;
-	label?: string;
-}
 
 export interface HAREntry extends _HAREntry {
 	_resourceType: 'xhr' | 'fetch' | 'preflight';
@@ -92,14 +86,18 @@ export type RequestItem = {
 	type: 'GQL' | 'JSON' | 'XML' | 'SVG' | 'IMG' | 'HTML' | 'Other';
 	method: string;
 	responseStatusCode: number;
-	responseStatusMessage: string;
+	responseStatusMessage?: string;
 	time: number;
 	headers: Array<Header>;
 	requestDomain: string;
-	requestQueryString: string;
-	requestGQLQuery: string;
-	requestGQLVariables: string;
-	requestPostData: string;
+	requestQueryString: string | null;
+	requestQueryStringCode: string | null;
+	requestGQLQuery: string | null;
+	requestGQLQueryCode: string | null;
+	requestGQLVariables: string | null;
+	requestGQLVariablesCode: string | null;
+	requestPostData: string | null;
+	requestPostDataCode: string | null;
 	responsePayload: string;
 	responseMimeType: string;
 };

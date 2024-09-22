@@ -1,18 +1,18 @@
-import { PrettierConfig } from '@trivago/prettier-plugin-sort-imports';
 import type { DefinitionNode, FieldNode, InlineFragmentNode, OperationDefinitionNode, OperationTypeNode, SelectionNode } from 'graphql';
 import { Kind, parse } from 'graphql';
 import type { Header, Param } from 'har-format';
 import hljs from 'highlight.js/lib/core';
-import httpStatus from 'http-status';
+import httpStatus, { type HttpStatus } from 'http-status';
 import prettierPluginHTML from 'prettier/plugins/html';
 import prettier from 'prettier/standalone';
 import { getQuery, parseURL } from 'ufo';
 import { randomUUID } from 'uncrypto';
 
 import type { BaseEntry, Entry, GQLEntry, HAREntry, HTTPEntry } from '../types';
+import type { Options } from 'prettier';
 
 class ParseResponseError extends Error {
-	constructor(message = "Cant't parse response content") {
+	constructor(message = "Can't parse response content") {
 		super(message);
 		this.name = 'ParseResponseError';
 	}
@@ -274,7 +274,7 @@ function getEntryInfo(entry: HAREntry): BaseEntry {
 	const { url, postData, headers: requestHeaders, method } = entry.request;
 	const { content, headers: responseHeaders, status } = entry.response;
 	const isError = status >= 400 || status === 0;
-	const statusMessage = httpStatus[+status];
+	const statusMessage = httpStatus[status as keyof typeof httpStatus] as string;
 	const timestamp = new Date(entry.startedDateTime).getTime();
 
 	return {
@@ -310,7 +310,7 @@ export async function formatAndHighlight(data: string, type: 'json' | 'xml' | 'h
 		printWidth: 80,
 		tabWidth: 3,
 		useTabs: false,
-	} as PrettierConfig;
+	} as Options;
 
 	switch (type) {
 		case 'json':
@@ -325,4 +325,12 @@ export async function formatAndHighlight(data: string, type: 'json' | 'xml' | 'h
 		default:
 			console.warn(`Wrong type provided (${type}) for formatting.`);
 	}
+}
+
+export function badgeClassForStatusCode(statusCode: number) {
+	return {
+		'badge-error': statusCode >= 400,
+		'badge-warning': statusCode >= 300 && statusCode < 400,
+		'badge-success': statusCode < 300,
+	};
 }
