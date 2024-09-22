@@ -33,7 +33,10 @@ Tip : Try GraphQL request with https://swapi-graphql.eskerda.vercel.app/
 
 ## Todo
 
-- Use `formatData` to handle more response type
+
+- Filter requests list by endpoint url
+- JSONPath, XPath selector or equivalent WIP
+- Handle Multipart request
+- Button to copy request headers, response, curl, ....
 - Global search
-- JSONPath, XPath selector or equivalent
-- Filter on request list
+- Create a component for smart tooltip
