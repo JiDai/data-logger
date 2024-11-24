@@ -2,7 +2,7 @@
    "manifest_version": 3,
    "name": "data-logger",
    "description": "description",
-   "version": "0.0.7",
+   "version": "0.1.0",
    "browser_specific_settings": {
       "gecko": {
          "id": "data-logger@jidai.fr"
