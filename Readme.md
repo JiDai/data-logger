@@ -37,3 +37,4 @@ Tip : Try GraphQL request with https://swapi-graphql.eskerda.vercel.app/
 - Global search
 - JSONPath, XPath selector or equivalent
 - Filter on request list
+- Request watcher, pin a request and display automatically following same requests
