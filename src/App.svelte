@@ -49,7 +49,7 @@
 	}
 
 	async function normalizeEntry(entry: Entry): Promise<RequestItem> {
-		let responsePayload = null;
+		let responsePayload: unknown = null;
 		try {
 			responsePayload = typeof entry.response.getResponse === 'function' ? await entry.response.getResponse() : null;
 		} catch (error) {

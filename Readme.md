@@ -34,7 +34,7 @@ Tip : Try GraphQL request with https://swapi-graphql.eskerda.vercel.app/
 ## Todo
 
 
-- Filter requests list by endpoint url
+- Add a field in the sidebar to filter requests list by endpoint url
 - JSONPath, XPath selector or equivalent WIP
 - Handle Multipart request
 - Button to copy request headers, response, curl, ....

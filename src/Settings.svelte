@@ -2,7 +2,6 @@
 	import { empty, setSettings, settings } from './store';
 	import { faCheckCircle } from '@fortawesome/free-regular-svg-icons';
 	import Fa from 'svelte-fa';
-	import { get } from 'svelte/store';
 
 	function clearList() {
 		empty();

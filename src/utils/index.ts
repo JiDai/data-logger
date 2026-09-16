@@ -2,7 +2,7 @@ import type { DefinitionNode, FieldNode, InlineFragmentNode, OperationDefinition
 import { Kind, parse } from 'graphql';
 import type { Header, Param } from 'har-format';
 import hljs from 'highlight.js/lib/core';
-import httpStatus, { type HttpStatus } from 'http-status';
+import httpStatus from 'http-status';
 import prettierPluginHTML from 'prettier/plugins/html';
 import prettier from 'prettier/standalone';
 import { getQuery, parseURL } from 'ufo';
@@ -28,7 +28,7 @@ interface ParsedQueryDefinition {
 interface ParsedQuery {
 	query: string;
 	data: ParsedQueryDefinition[];
-	variables?: any;
+	variables?: Record<string, string | number> | string;
 	operationName?: string;
 	batch?: {
 		length: number;
@@ -59,7 +59,8 @@ function isValidQuery(query: string) {
 		parse(query, { noLocation: true });
 
 		return true;
-	} catch (_) {
+	} catch (error) {
+		console.warn(error);
 		return false;
 	}
 }
@@ -115,7 +116,8 @@ export function isGraphQL(entry: HAREntry) {
 			try {
 				const json = JSON.parse(text);
 				query = Array.isArray(json) ? json.at(0).query : json.query;
-			} catch (e) {
+			} catch (error) {
+				console.log(error);
 				return false;
 			}
 		}
@@ -160,7 +162,7 @@ export function parseHTTPEntry(entry: HAREntry): HTTPEntry {
 	};
 }
 
-function isArray(arr: any): arr is any[] {
+function isArray(arr: unknown): arr is unknown[] {
 	return Array.isArray(arr);
 }
 
@@ -168,7 +170,7 @@ export async function parseGQLEntry(entry: HAREntry): Promise<GQLEntry | GQLEntr
 	const parsedQueries: ParsedQuery[] = [];
 	const { postData, queryString } = entry.request;
 
-	let json: ParsedQuery | null = null;
+	let json: ParsedQuery;
 
 	if (
 		(isContentType(entry.request, 'application/json') && entry.request.method === 'GET') ||
@@ -186,24 +188,30 @@ export async function parseGQLEntry(entry: HAREntry): Promise<GQLEntry | GQLEntr
 				variables,
 				operationName,
 			};
+		} else {
+			return [];
 		}
 	} else if (postData?.text) {
 		try {
 			json = JSON.parse(postData.text);
-		} catch (e: any) {
-			console.warn(`Internal Error Parsing: ${entry}. Message: ${e.message}. Stack: ${e.stack}`);
+		} catch (e: unknown) {
+			const error = e as Error;
+			console.warn(`Internal Error Parsing: ${entry}. Message: ${error.message}. Stack: ${error.stack}`);
 			return [];
 		}
+	} else {
+		return [];
 	}
 
-	[json].flat().forEach((batchItem: any, i: number) => {
+	[json].flat().forEach((batchItem: ParsedQuery, i: number) => {
 		const { query, operationName } = batchItem;
 		let { variables } = batchItem;
 
 		try {
 			variables = typeof variables === 'string' ? JSON.parse(variables) : variables;
-		} catch (e: any) {
-			console.warn(`Internal Error Parsing: ${entry}. Message: ${e.message}. Stack: ${e.stack}`);
+		} catch (e: unknown) {
+			const error = e as Error;
+			console.warn(`Internal Error Parsing: ${entry}. Message: ${error.message}. Stack: ${error.stack}`);
 			return [];
 		}
 
@@ -264,8 +272,9 @@ async function getContent(entry: HAREntry) {
 
 	try {
 		return JSON.parse(body);
-	} catch (e: any) {
-		console.warn(`Internal Error Parsing: ${entry}. Message: ${e.message}. Stack: ${e.stack}`);
+	} catch (e: unknown) {
+		const error = e as Error;
+		console.warn(`Internal Error Parsing: ${entry}. Message: ${error.message}. Stack: ${error.stack}`);
 		throw new ParseResponseError();
 	}
 }
@@ -297,7 +306,7 @@ function getEntryInfo(entry: HAREntry): BaseEntry {
 	};
 }
 
-export async function formatAndHighlight(data: string, type: 'json' | 'xml' | 'html') {
+export async function formatAndHighlight(data: unknown, type: 'json' | 'xml' | 'html') {
 	const prettierConfig = {
 		bracketSameLine: false,
 		bracketSpacing: true,
@@ -316,10 +325,11 @@ export async function formatAndHighlight(data: string, type: 'json' | 'xml' | 'h
 		case 'json':
 			return hljs.highlight(JSON.stringify(data, null, 3), { language: 'json' }).value;
 		case 'xml':
-			return hljs.highlight(await prettier.format(data, { ...prettierConfig, parser: 'html', plugins: [prettierPluginHTML] }), { language: 'xml' })
-				.value;
+			return hljs.highlight(await prettier.format(data as string, { ...prettierConfig, parser: 'html', plugins: [prettierPluginHTML] }), {
+				language: 'xml',
+			}).value;
 		case 'html':
-			return hljs.highlight(await prettier.format(data, { ...prettierConfig, parser: 'html', plugins: [prettierPluginHTML] }), {
+			return hljs.highlight(await prettier.format(data as string, { ...prettierConfig, parser: 'html', plugins: [prettierPluginHTML] }), {
 				language: 'html',
 			}).value;
 		default:

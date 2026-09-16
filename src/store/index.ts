@@ -35,13 +35,14 @@ export const setResponsePayloadHighlighted = function (payload: string) {
 
 export const currentRequestItem = writable<RequestItem | null>(null);
 export const setCurrentRequestItem = async function (requestItem: RequestItem) {
-	let payload = '';
+	let payload: unknown = '';
 	switch (requestItem.type) {
-		case 'JSON':
-			console.log('responsePayloadJSONPathFilter: ', get(responsePayloadJSONPathFilter));
-			if (requestItem.responsePayload && get(responsePayloadJSONPathFilter)) {
+		case 'JSON': {
+			const jsonPathFilter = get(responsePayloadJSONPathFilter);
+			console.log('responsePayloadJSONPathFilter: ', jsonPathFilter);
+			if (requestItem.responsePayload && jsonPathFilter) {
 				try {
-					payload = jp.query(requestItem.responsePayload, get(responsePayloadJSONPathFilter));
+					payload = jp.query(requestItem.responsePayload, jsonPathFilter);
 				} catch (error) {
 					console.error('jsonpath error', error);
 				}
@@ -51,18 +52,19 @@ export const setCurrentRequestItem = async function (requestItem: RequestItem) {
 
 			setResponsePayloadHighlighted((await formatAndHighlight(payload, 'json')) || '');
 			break;
+		}
 		case 'GQL':
-			setResponsePayloadHighlighted((await formatAndHighlight(requestItem.responsePayload, 'json')) || '');
+			setResponsePayloadHighlighted((await formatAndHighlight(requestItem.responsePayload ?? '', 'json')) || '');
 			break;
 		case 'SVG':
 		case 'XML':
-			setResponsePayloadHighlighted((await formatAndHighlight(requestItem.responsePayload, 'xml')) || '');
+			setResponsePayloadHighlighted((await formatAndHighlight(requestItem.responsePayload ?? '', 'xml')) || '');
 			break;
 		case 'HTML':
-			setResponsePayloadHighlighted((await formatAndHighlight(requestItem.responsePayload, 'html')) || '');
+			setResponsePayloadHighlighted((await formatAndHighlight(requestItem.responsePayload ?? '', 'html')) || '');
 			break;
 		default:
-			setResponsePayloadHighlighted(requestItem.responsePayload);
+			setResponsePayloadHighlighted(typeof requestItem.responsePayload === 'string' ? requestItem.responsePayload : '');
 			break;
 	}
 	currentRequestItem.set(requestItem);
