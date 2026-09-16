@@ -272,6 +272,113 @@ export const fixtures = [
 		serverIPAddress: '127.0.0.1',
 		connection: '3000',
 	},
+	// POST multipart/form-data
+	{
+		startedDateTime: new Date('2024-02-19T18:30:12.104+01:00').getTime(),
+		async getContent() {
+			return ['{"uploaded":true}', 'application/json'];
+		},
+		request: {
+			bodySize: 512,
+			method: 'POST',
+			url: 'http://localhost:3000/upload',
+			httpVersion: 'HTTP/1.1',
+			headers: [
+				{
+					name: 'Host',
+					value: 'localhost:3000',
+				},
+				{
+					name: 'User-Agent',
+					value: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:122.0) Gecko/20100101 Firefox/122.0',
+				},
+				{
+					name: 'Accept',
+					value: 'application/json',
+				},
+				{
+					name: 'content-type',
+					value: 'multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW',
+				},
+				{
+					name: 'Origin',
+					value: 'http://localhost:3001',
+				},
+				{
+					name: 'Connection',
+					value: 'keep-alive',
+				},
+			],
+			cookies: [],
+			queryString: [],
+			headersSize: 402,
+			postData: {
+				mimeType: 'multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW',
+				params: [],
+				text:
+					'------WebKitFormBoundary7MA4YWxkTrZu0gW\r\n' +
+					'Content-Disposition: form-data; name="title"\r\n' +
+					'\r\n' +
+					'My upload\r\n' +
+					'------WebKitFormBoundary7MA4YWxkTrZu0gW\r\n' +
+					'Content-Disposition: form-data; name="file"; filename="photo.png"\r\n' +
+					'Content-Type: image/png\r\n' +
+					'\r\n' +
+					'<binary png bytes>\r\n' +
+					'------WebKitFormBoundary7MA4YWxkTrZu0gW--\r\n',
+			},
+		},
+		response: {
+			status: 200,
+			statusText: 'OK',
+			httpVersion: 'HTTP/1.1',
+			headers: [
+				{
+					name: 'access-control-allow-origin',
+					value: '*',
+				},
+				{
+					name: 'content-type',
+					value: 'application/json',
+				},
+				{
+					name: 'Date',
+					value: 'Mon, 19 Feb 2024 17:30:12 GMT',
+				},
+				{
+					name: 'Connection',
+					value: 'keep-alive',
+				},
+				{
+					name: 'Content-Length',
+					value: '17',
+				},
+			],
+			cookies: [],
+			content: {
+				mimeType: 'application/json',
+				size: 17,
+				comment: 'Response bodies are not included.',
+			},
+			redirectURL: '',
+			headersSize: 227,
+			bodySize: 512,
+		},
+		cache: {},
+		timings: {
+			blocked: -1,
+			dns: 0,
+			connect: 0,
+			ssl: 0,
+			send: 0,
+			wait: 2,
+			receive: 0,
+		},
+		time: 2,
+		_securityState: 'insecure',
+		serverIPAddress: '127.0.0.1',
+		connection: '3000',
+	},
 	// GQL query
 	{
 		startedDateTime: '2024-02-19T20:05:54.241+01:00',

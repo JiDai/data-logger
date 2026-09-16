@@ -33,7 +33,6 @@ Tip : Try GraphQL request with https://swapi-graphql.eskerda.vercel.app/
 
 ## Todo
 
-- Feature #2: JSONPath, XPath selector or equivalent WIP
 - Feature #3: Handle Multipart request
 - Feature #4: Button to copy request headers, response, curl, ....
 - Feature #5: Global search
