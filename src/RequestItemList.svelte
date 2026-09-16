@@ -12,6 +12,10 @@
 	};
 	let { requestItems, setCurrentRequestItem, currentRequestItem }: Props = $props();
 
+	$effect(() => {
+		if (!currentRequestItem) return;
+		document.querySelector(`[data-request-id="${currentRequestItem.id}"]`)?.scrollIntoView({ block: 'nearest' });
+	});
 </script>
 
 <div class="grow overflow-y-auto">
@@ -19,6 +23,7 @@
 		<button
 			onclick={() => setCurrentRequestItem(requestItem)}
 			title={requestItem.name}
+			data-request-id={requestItem.id}
 			class={clsx('block text-left p-2', {
 				'bg-zinc-700': requestItem.id === currentRequestItem?.id,
 			})}

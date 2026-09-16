@@ -8,7 +8,7 @@ import prettier from 'prettier/standalone';
 import { getQuery, parseURL } from 'ufo';
 import { randomUUID } from 'uncrypto';
 
-import type { BaseEntry, Entry, GQLEntry, HAREntry, HTTPEntry } from '../types';
+import type { BaseEntry, Entry, GQLEntry, HAREntry, HTTPEntry, RequestItem } from '../types';
 import type { Options } from 'prettier';
 
 class ParseResponseError extends Error {
@@ -50,6 +50,27 @@ function isContentType(request: { headers: Header[] }, contentType: string) {
 	);
 }
 
+const EXTENSION_MIME_TYPES: Record<string, string> = {
+	png: 'image/png',
+	jpg: 'image/jpeg',
+	jpeg: 'image/jpeg',
+	gif: 'image/gif',
+	webp: 'image/webp',
+	svg: 'image/svg+xml',
+	ico: 'image/x-icon',
+	bmp: 'image/bmp',
+	avif: 'image/avif',
+};
+
+// Firefox/Chrome report 'application/x-unknown-content-type' when a response has no Content-Type
+// header at all; fall back to sniffing the URL's file extension so those entries still classify correctly.
+export function resolveResponseMimeType({ url, mimeType }: { url: string; mimeType: string }): string {
+	if (mimeType && mimeType !== 'application/x-unknown-content-type') return mimeType;
+
+	const extension = parseURL(url).pathname.split('.').pop()?.toLowerCase();
+	return (extension && EXTENSION_MIME_TYPES[extension]) || mimeType;
+}
+
 function isOperationDefinition(node: DefinitionNode): node is OperationDefinitionNode {
 	return node.kind === Kind.OPERATION_DEFINITION;
 }
@@ -82,6 +103,38 @@ function getQueryValue(name: string, params: Param[] = []) {
 	const { value } = params.find((param) => param.name === name) || {};
 
 	return value && decodeURIComponent(value);
+}
+
+function parseMultipartFormData(mimeType: string | undefined, text: string): Param[] {
+	const boundaryMatch = /boundary=(?:"([^"]+)"|([^;]+))/i.exec(mimeType || '');
+	const boundary = boundaryMatch?.[1] ?? boundaryMatch?.[2];
+	if (!boundary) return [];
+
+	const delimiter = `--${boundary}`;
+	const params: Param[] = [];
+
+	for (const rawPart of text.split(delimiter).slice(1, -1)) {
+		const part = rawPart.replace(/^\r\n/, '');
+		const separatorIndex = part.indexOf('\r\n\r\n');
+		if (separatorIndex === -1) continue;
+
+		const headerLines = part.slice(0, separatorIndex).split('\r\n');
+		const value = part.slice(separatorIndex + 4).replace(/\r\n$/, '');
+
+		const disposition = headerLines.find((line) => /^Content-Disposition:/i.test(line));
+		const nameMatch = disposition && /name="([^"]*)"/i.exec(disposition);
+		if (!nameMatch) continue;
+
+		const fileNameMatch = /filename="([^"]*)"/i.exec(disposition);
+		const contentTypeLine = headerLines.find((line) => /^Content-Type:/i.test(line));
+		const contentType = contentTypeLine?.slice(contentTypeLine.indexOf(':') + 1).trim();
+
+		params.push(
+			fileNameMatch ? { name: nameMatch[1], fileName: fileNameMatch[1], contentType } : { name: nameMatch[1], value },
+		);
+	}
+
+	return params;
 }
 
 function parseQuery(query: string): ParsedQueryDefinition[] {
@@ -137,8 +190,13 @@ export function parseHTTPEntry(entry: HAREntry): HTTPEntry {
 	let params;
 
 	if (postData) {
-		if (postData.params && postData.params.length > 0) params = postData.params;
-		else if (postData.text) body = JSON.parse(postData.text);
+		if (postData.params && postData.params.length > 0) {
+			params = postData.params;
+		} else if (isContentType(entry.request, 'multipart/form-data') && postData.text) {
+			params = parseMultipartFormData(postData.mimeType, postData.text);
+		} else if (postData.text) {
+			body = JSON.parse(postData.text);
+		}
 	}
 	const getResponse = async () => getContent(entry);
 
@@ -335,6 +393,18 @@ export async function formatAndHighlight(data: unknown, type: 'json' | 'xml' | '
 		default:
 			console.warn(`Wrong type provided (${type}) for formatting.`);
 	}
+}
+
+// Loose endpoint identity (host + pathname) used by the manual sidebar filter.
+export function endpointKeyForRequestItem(item: RequestItem): string {
+	return `${item.requestDomain}${item.name}`.toLowerCase();
+}
+
+// Strict identity used by the "watch" feature: same method and exact URL, including
+// query string when present — e.g. GET /user?page=1 stays distinct from GET /user?page=2,
+// and GET /user stays distinct from POST /user.
+export function watchKeyForRequestItem(item: RequestItem): string {
+	return `${item.method.toUpperCase()} ${item.url}`.toLowerCase();
 }
 
 export function badgeClassForStatusCode(statusCode: number) {

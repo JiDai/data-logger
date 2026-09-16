@@ -85,10 +85,12 @@ export type RequestItem = {
 	name: string;
 	type: 'GQL' | 'JSON' | 'XML' | 'SVG' | 'IMG' | 'HTML' | 'Other';
 	method: string;
+	url: string;
 	responseStatusCode: number;
 	responseStatusMessage?: string;
 	time: number;
 	headers: Array<Header>;
+	responseHeaders: Array<Header>;
 	requestDomain: string;
 	requestQueryString: string | null;
 	requestQueryStringCode: string | null;
@@ -98,6 +100,7 @@ export type RequestItem = {
 	requestGQLVariablesCode: string | null;
 	requestPostData: string | null;
 	requestPostDataCode: string | null;
+	requestParams: Param[] | null;
 	responsePayload: unknown;
 	responseMimeType: string;
 };
