@@ -8,7 +8,7 @@ import prettier from 'prettier/standalone';
 import { getQuery, parseURL } from 'ufo';
 import { randomUUID } from 'uncrypto';
 
-import type { BaseEntry, Entry, GQLEntry, HAREntry, HTTPEntry } from '../types';
+import type { BaseEntry, Entry, GQLEntry, HAREntry, HTTPEntry, RequestItem } from '../types';
 import type { Options } from 'prettier';
 
 class ParseResponseError extends Error {
@@ -393,6 +393,18 @@ export async function formatAndHighlight(data: unknown, type: 'json' | 'xml' | '
 		default:
 			console.warn(`Wrong type provided (${type}) for formatting.`);
 	}
+}
+
+// Loose endpoint identity (host + pathname) used by the manual sidebar filter.
+export function endpointKeyForRequestItem(item: RequestItem): string {
+	return `${item.requestDomain}${item.name}`.toLowerCase();
+}
+
+// Strict identity used by the "watch" feature: same method and exact URL, including
+// query string when present — e.g. GET /user?page=1 stays distinct from GET /user?page=2,
+// and GET /user stays distinct from POST /user.
+export function watchKeyForRequestItem(item: RequestItem): string {
+	return `${item.method.toUpperCase()} ${item.url}`.toLowerCase();
 }
 
 export function badgeClassForStatusCode(statusCode: number) {
