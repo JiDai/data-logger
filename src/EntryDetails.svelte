@@ -97,7 +97,7 @@
 		{#if requestItem.type === 'SVG'}
 			<div>
 				<div class="img-wrapper-background mb-3 flex max-w-full items-center justify-center p-4">
-					<div contenteditable bind:innerHTML={requestItem.responsePayload}></div>
+					<div contenteditable bind:innerHTML={requestItem.responsePayload as string}></div>
 				</div>
 				<h3 class="mb-2 text-base">Raw content</h3>
 				<pre class="mt-0 max-w-full">

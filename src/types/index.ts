@@ -38,12 +38,12 @@ interface HTTPEntryRequest extends BaseEntryRequest {
 	pathname: string;
 	queryString: string;
 	query: QueryObject;
-	body: any;
+	body: BodyInit;
 	params?: Param[];
 }
 
 interface HTTPEntryResponse extends BaseEntryResponse {
-	getResponse: () => Promise<any>;
+	getResponse: () => Promise<unknown>;
 }
 
 export interface HTTPEntry extends BaseEntry {
@@ -56,8 +56,8 @@ interface GQLEntryRequest extends BaseEntryRequest {
 	name?: string;
 	operations: string[];
 	operationType: OperationTypeNode;
-	query: any;
-	variables: any;
+	query: string;
+	variables: unknown;
 	batch?: {
 		length: number;
 		count: number;
@@ -66,8 +66,8 @@ interface GQLEntryRequest extends BaseEntryRequest {
 
 interface GQLEntryResponse extends BaseEntryResponse {
 	getResponse: () => Promise<{
-		data?: any;
-		errors?: any[];
+		data?: unknown;
+		errors?: unknown[];
 	}>;
 }
 
@@ -98,6 +98,6 @@ export type RequestItem = {
 	requestGQLVariablesCode: string | null;
 	requestPostData: string | null;
 	requestPostDataCode: string | null;
-	responsePayload: string;
+	responsePayload: unknown;
 	responseMimeType: string;
 };

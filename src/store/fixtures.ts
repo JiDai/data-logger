@@ -1,5 +1,3 @@
-import { parseGQLEntry } from '../utils';
-
 export const fixtures = [
 	// GET XHR
 	{
@@ -278,10 +276,7 @@ export const fixtures = [
 	{
 		startedDateTime: '2024-02-19T20:05:54.241+01:00',
 		async getContent() {
-			return [
-				'[{"data":{"book":{"id":"1","author":null,"__typename":"Book"}}}\n]',
-				'application/json; charset=utf-8',
-			];
+			return ['[{"data":{"book":{"id":"1","author":null,"__typename":"Book"}}}\n]', 'application/json; charset=utf-8'];
 		},
 		request: {
 			bodySize: 155,
