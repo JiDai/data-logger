@@ -7,7 +7,15 @@
 
 	import * as prettier from 'prettier';
 	import parserGraphql from 'prettier/plugins/graphql';
-	import { append, responsePayloadHighlighted, responsePayloadJSONPathFilter, setResponsePayloadJSONPathFilter, settings } from './store';
+	import {
+		append,
+		responsePayloadHighlighted,
+		responsePayloadJSONPathFilter,
+		setResponsePayloadJSONPathFilter,
+		settings,
+		endpointUrlFilter,
+		setEndpointUrlFilter,
+	} from './store';
 	import { fixtures } from './store/fixtures';
 	import { entries, setCurrentRequestItem, currentRequestItem } from './store';
 	import type { Entry, GQLEntry, HAREntry, HTTPEntry, RequestItem } from './types';
@@ -193,6 +201,22 @@
 <div class="h-full text-xs">
 	<div class="flex h-full flex-row items-stretch gap-x-2">
 		<div class="flex w-[16rem] shrink-0 basis-[16rem] bg-primary-content flex-col border-r border-solid border-neutral justify-between">
+			<div class="flex items-center border-b border-solid border-neutral">
+				<input
+					type="text"
+					value={$endpointUrlFilter}
+					placeholder="Filter by endpoint URL"
+					class="w-full bg-transparent p-2 text-xs outline-none ring-0"
+					oninput={(event) => setEndpointUrlFilter(event.currentTarget.value)}
+				/>
+				{#if $endpointUrlFilter}
+					<button class="mr-2" onclick={() => setEndpointUrlFilter('')} aria-label="Clear endpoint URL filter">
+						<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width={1.5} stroke="currentColor" class="h-4 w-4">
+							<path stroke-linecap="round" stroke-linejoin="round" d="m9.75 9.75 4.5 4.5m0-4.5-4.5 4.5M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+						</svg>
+					</button>
+				{/if}
+			</div>
 			<RequestItemList requestItems={$entries.filter((entry) => {
 					if (!$settings.filters.Img && !$settings.filters.GQL && !$settings.filters.JSON && !$settings.filters.XML && !$settings.filters.Other) {
 						return true;
@@ -204,6 +228,12 @@
 						($settings.filters.XML && entry.type === 'XML') ||
 						($settings.filters.Other && entry.type === 'Other')
 					);
+				}).filter((entry) => {
+					if (!$endpointUrlFilter) {
+						return true;
+					}
+					const endpointUrl = `${entry.requestDomain}${entry.name}`.toLowerCase();
+					return endpointUrl.includes($endpointUrlFilter.toLowerCase());
 				})
 				} {setCurrentRequestItem} currentRequestItem={$currentRequestItem} />
 

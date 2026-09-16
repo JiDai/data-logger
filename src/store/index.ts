@@ -71,6 +71,14 @@ export const setCurrentRequestItem = async function (requestItem: RequestItem) {
 };
 
 /*
+ * Endpoint URL filter Store
+ */
+export const endpointUrlFilter = writable<string>('');
+export const setEndpointUrlFilter = function (value: string) {
+	endpointUrlFilter.set(value);
+};
+
+/*
  * Settings Store
  */
 

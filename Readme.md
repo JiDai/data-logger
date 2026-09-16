@@ -33,12 +33,9 @@ Tip : Try GraphQL request with https://swapi-graphql.eskerda.vercel.app/
 
 ## Todo
 
-
-- Add a field in the sidebar to filter requests list by endpoint url
-- JSONPath, XPath selector or equivalent WIP
-- Handle Multipart request
-- Button to copy request headers, response, curl, ....
-- Global search
-- JSONPath, XPath selector or equivalent
-- Create a component for smart tooltip
-- Request watcher, pin a request and display automatically following same requests
+- Feature #2: JSONPath, XPath selector or equivalent WIP
+- Feature #3: Handle Multipart request
+- Feature #4: Button to copy request headers, response, curl, ....
+- Feature #5: Global search
+- Feature #6: Create a component for smart tooltip
+- Feature #7: Request watcher, pin a request and display automatically following same requests
