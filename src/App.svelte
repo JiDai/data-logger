@@ -45,6 +45,71 @@
 		return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 	}
 
+	let endpointFilterInput: HTMLInputElement | undefined = $state();
+
+	let filteredRequestItems = $derived(
+		$entries
+			.filter((entry) => {
+				if (!$settings.filters.Img && !$settings.filters.GQL && !$settings.filters.JSON && !$settings.filters.XML && !$settings.filters.Other) {
+					return true;
+				}
+				return (
+					($settings.filters.Img && entry.type === 'IMG') ||
+					($settings.filters.GQL && entry.type === 'GQL') ||
+					($settings.filters.JSON && entry.type === 'JSON') ||
+					($settings.filters.XML && entry.type === 'XML') ||
+					($settings.filters.Other && entry.type === 'Other')
+				);
+			})
+			.filter((entry) => {
+				if (!$endpointUrlFilter) {
+					return true;
+				}
+				const endpointUrl = `${entry.requestDomain}${entry.name}`.toLowerCase();
+				return endpointUrl.includes($endpointUrlFilter.toLowerCase());
+			}),
+	);
+
+	function isEditableTarget(target: EventTarget | null): boolean {
+		if (!(target instanceof HTMLElement)) return false;
+		return target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable;
+	}
+
+	function handleWindowKeydown(event: KeyboardEvent) {
+		if ((event.ctrlKey || event.metaKey) && event.key === '/') {
+			event.preventDefault();
+			endpointFilterInput?.focus();
+			endpointFilterInput?.select();
+			return;
+		}
+
+		if (event.key !== 'ArrowUp' && event.key !== 'ArrowDown') {
+			return;
+		}
+		if (isEditableTarget(event.target)) {
+			return;
+		}
+		if (filteredRequestItems.length === 0) {
+			return;
+		}
+
+		event.preventDefault();
+		const currentIndex = $currentRequestItem ? filteredRequestItems.findIndex((item) => item.id === $currentRequestItem?.id) : -1;
+		const nextIndex =
+			event.key === 'ArrowDown'
+				? currentIndex < 0
+					? 0
+					: Math.min(currentIndex + 1, filteredRequestItems.length - 1)
+				: currentIndex < 0
+					? 0
+					: Math.max(currentIndex - 1, 0);
+
+		const nextItem = filteredRequestItems[nextIndex];
+		if (nextItem) {
+			setCurrentRequestItem(nextItem);
+		}
+	}
+
 	const acceptedMimeTypes = [/application\/json/, /text\/.*/, /image\/.*/];
 
 	function isAcceptedEntry(entry: Entry) {
@@ -207,11 +272,14 @@
 	}
 </script>
 
+<svelte:window onkeydown={handleWindowKeydown} />
+
 <div class="h-full text-xs">
 	<div class="flex h-full flex-row items-stretch gap-x-2">
 		<div class="flex w-[16rem] shrink-0 basis-[16rem] bg-primary-content flex-col border-r border-solid border-neutral justify-between">
 			<div class="flex items-center border-b border-solid border-neutral">
 				<input
+					bind:this={endpointFilterInput}
 					type="text"
 					value={$endpointUrlFilter}
 					placeholder="Filter by endpoint URL"
@@ -226,25 +294,7 @@
 					</button>
 				{/if}
 			</div>
-			<RequestItemList requestItems={$entries.filter((entry) => {
-					if (!$settings.filters.Img && !$settings.filters.GQL && !$settings.filters.JSON && !$settings.filters.XML && !$settings.filters.Other) {
-						return true;
-					}
-					return (
-						($settings.filters.Img && entry.type === 'IMG') ||
-						($settings.filters.GQL && entry.type === 'GQL') ||
-						($settings.filters.JSON && entry.type === 'JSON') ||
-						($settings.filters.XML && entry.type === 'XML') ||
-						($settings.filters.Other && entry.type === 'Other')
-					);
-				}).filter((entry) => {
-					if (!$endpointUrlFilter) {
-						return true;
-					}
-					const endpointUrl = `${entry.requestDomain}${entry.name}`.toLowerCase();
-					return endpointUrl.includes($endpointUrlFilter.toLowerCase());
-				})
-				} {setCurrentRequestItem} currentRequestItem={$currentRequestItem} />
+			<RequestItemList requestItems={filteredRequestItems} {setCurrentRequestItem} currentRequestItem={$currentRequestItem} />
 
 			<div class="flex items-center gap-2 mt-auto p-1 border-t border-solid border-neutral">
 				<Settings />
