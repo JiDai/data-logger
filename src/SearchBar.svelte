@@ -2,12 +2,14 @@
 	import { tick } from 'svelte';
 	import clsx from 'clsx';
 	import type { PanelSearch } from './lib/panelSearch.svelte';
+	import type { Snippet } from 'svelte';
 
 	type Props = {
 		search: PanelSearch;
 		label: string;
+		leading?: Snippet;
 	};
-	let { search, label }: Props = $props();
+	let { search, label, leading }: Props = $props();
 
 	let inputEl: HTMLInputElement | undefined = $state();
 
@@ -31,7 +33,7 @@
 	}
 </script>
 
-<div class="absolute right-2 top-2 z-20">
+<div class="absolute right-2 top-2 z-20 flex items-center gap-1">
 	{#if !search.open}
 		<button
 			type="button"
@@ -117,4 +119,5 @@
 			</button>
 		</div>
 	{/if}
+	{#if leading}{@render leading()}{/if}
 </div>

@@ -5,6 +5,7 @@
 	import type { FormEventHandler } from 'svelte/elements';
 	import { PanelSearch } from './lib/panelSearch.svelte';
 	import SearchBar from './SearchBar.svelte';
+	import CopyMenu from './CopyMenu.svelte';
 
 	type Props = {
 		requestItem: RequestItem;
@@ -19,7 +20,11 @@
 </script>
 
 <div class="relative basis-3/6 overflow-hidden">
-	<SearchBar search={requestSearch} label="request" />
+	<SearchBar search={requestSearch} label="request">
+		{#snippet leading()}
+			<CopyMenu {requestItem} />
+		{/snippet}
+	</SearchBar>
 	<div class="h-full overflow-y-auto p-2" use:requestSearch.action>
 	<h2 class="mb-4 text-lg">
 		<span class="flex flex-row items-center gap-2">
