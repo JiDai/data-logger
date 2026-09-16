@@ -1,5 +1,30 @@
 import type { RequestItem } from '../types';
 
+export async function writeToClipboard(text: string): Promise<boolean> {
+	try {
+		await navigator.clipboard.writeText(text);
+		return true;
+	} catch (error) {
+		console.warn('navigator.clipboard.writeText failed, falling back to execCommand', error);
+	}
+
+	try {
+		const textarea = document.createElement('textarea');
+		textarea.value = text;
+		textarea.style.position = 'fixed';
+		textarea.style.opacity = '0';
+		document.body.appendChild(textarea);
+		textarea.focus();
+		textarea.select();
+		const success = document.execCommand('copy');
+		document.body.removeChild(textarea);
+		return success;
+	} catch (error) {
+		console.warn('Fallback clipboard copy failed', error);
+		return false;
+	}
+}
+
 function escapeShellSingleQuotes(value: string): string {
 	return value.replace(/'/g, `'\\''`);
 }
@@ -17,16 +42,16 @@ function getRequestBodyText(item: RequestItem): string | null {
 	return item.requestPostData;
 }
 
+export function canCopyUrl(item: RequestItem): boolean {
+	return !!item.url;
+}
+
 export function canCopyAsCurl(item: RequestItem): boolean {
 	return !!item.url;
 }
 
 export function canCopyAsHar(item: RequestItem): boolean {
 	return !!item.url;
-}
-
-export function canCopyRequestHeaders(item: RequestItem): boolean {
-	return item.headers.length > 0;
 }
 
 export function getResponseBodyText(item: RequestItem): string | null {
@@ -40,10 +65,6 @@ export function getResponseBodyText(item: RequestItem): string | null {
 	} catch {
 		return null;
 	}
-}
-
-export function canCopyResponseBody(item: RequestItem): boolean {
-	return getResponseBodyText(item) !== null;
 }
 
 export function buildCurlCommand(item: RequestItem): string {
@@ -126,4 +147,14 @@ export function buildHarEntry(item: RequestItem): object {
 
 export function formatRequestHeaders(item: RequestItem): string {
 	return item.headers.map(({ name, value }) => `${name}: ${value}`).join('\n');
+}
+
+export function formatRequestParams(item: RequestItem): string {
+	if (!item.requestParams) return '';
+
+	return item.requestParams
+		.map(({ name, value, fileName, contentType }) =>
+			fileName ? `${name}: ${fileName}${contentType ? ` (${contentType})` : ''}` : `${name}: ${value ?? ''}`,
+		)
+		.join('\n');
 }

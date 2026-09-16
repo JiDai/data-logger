@@ -6,6 +6,8 @@
 	import { PanelSearch } from './lib/panelSearch.svelte';
 	import SearchBar from './SearchBar.svelte';
 	import CopyMenu from './CopyMenu.svelte';
+	import CopyIconButton from './CopyIconButton.svelte';
+	import { formatRequestHeaders, formatRequestParams, getResponseBodyText } from './lib/copyExport';
 
 	type Props = {
 		requestItem: RequestItem;
@@ -37,13 +39,19 @@
 		{/if}
 	</h2>
 	<div class="mb-3">
-		<h3 class="mb-2 text-base">Headers</h3>
+		<h3 class="mb-2 flex items-center gap-1 text-base">
+			Headers
+			<CopyIconButton text={formatRequestHeaders(requestItem)} label="Copy request headers" />
+		</h3>
 		<table>
 			<tbody>
 			{#each requestItem.headers as header}
 				<tr class="border-b border-solid border-gray-700">
 					<td class="whitespace-nowrap py-1 pr-2 align-top">{header.name}</td>
 					<td class="break-all">{header.value}</td>
+					<td class="w-0 py-1 pl-1 align-top">
+						<CopyIconButton text={header.value} label={`Copy value of ${header.name}`} />
+					</td>
 				</tr>
 			{/each}
 			</tbody>
@@ -52,39 +60,54 @@
 	{#if requestItem.requestQueryString}
 		<div class="mb-3">
 			<h3 class="mb-2 text-base">Query string</h3>
-			<pre>
-				<code class="hljs" contenteditable bind:innerHTML={requestItem.requestQueryStringCode}></code>
-			</pre>
+			<div class="relative">
+				<CopyIconButton
+					text={requestItem.requestQueryString}
+					label="Copy query string"
+					class="absolute right-1 top-1 z-10 bg-base-200/80"
+				/>
+				<pre><code class="hljs" contenteditable bind:innerHTML={requestItem.requestQueryStringCode}></code></pre>
+			</div>
 		</div>
 	{/if}
 
 	{#if requestItem.requestGQLQuery}
 		<div class="mb-3">
 			<h3 class="mb-2 text-base">GQL Query</h3>
-			<pre>
-				<code class="hljs" contenteditable bind:innerHTML={requestItem.requestGQLQueryCode}></code>
-			</pre>
+			<div class="relative">
+				<CopyIconButton text={requestItem.requestGQLQuery} label="Copy GQL query" class="absolute right-1 top-1 z-10 bg-base-200/80" />
+				<pre><code class="hljs" contenteditable bind:innerHTML={requestItem.requestGQLQueryCode}></code></pre>
+			</div>
 		</div>
 	{/if}
 	{#if requestItem.requestGQLVariables}
 		<div class="mb-3">
 			<h3 class="mb-2 text-base">GQL Variables</h3>
-			<pre>
-				<code class="hljs" contenteditable bind:innerHTML={requestItem.requestGQLVariablesCode}></code>
-			</pre>
+			<div class="relative">
+				<CopyIconButton
+					text={requestItem.requestGQLVariables}
+					label="Copy GQL variables"
+					class="absolute right-1 top-1 z-10 bg-base-200/80"
+				/>
+				<pre><code class="hljs" contenteditable bind:innerHTML={requestItem.requestGQLVariablesCode}></code></pre>
+			</div>
 		</div>
 	{/if}
 	{#if requestItem.requestPostData}
 		<div class="mb-3">
 			<h3 class="mb-2 text-base">POST data</h3>
-			<pre>
-				<code class="hljs" contenteditable bind:innerHTML={requestItem.requestPostDataCode}></code>
-			</pre>
+			<div class="relative">
+				<CopyIconButton text={requestItem.requestPostData} label="Copy POST data" class="absolute right-1 top-1 z-10 bg-base-200/80" />
+				<pre><code class="hljs" contenteditable bind:innerHTML={requestItem.requestPostDataCode}></code></pre>
+			</div>
 		</div>
 	{/if}
 	{#if requestItem.requestParams}
 		<div class="mb-3">
-			<h3 class="mb-2 text-base">Form data</h3>
+			<h3 class="mb-2 flex items-center gap-1 text-base">
+				Form data
+				<CopyIconButton text={formatRequestParams(requestItem)} label="Copy form data" />
+			</h3>
 			<table>
 				<tbody>
 				{#each requestItem.requestParams as param}
@@ -126,9 +149,10 @@
 		</h2>
 
 		{#if ['JSON', 'GQL', 'XML'].includes(requestItem.type) && requestItem.responsePayload}
-			<pre class="mt-0">
-				<code class="hljs" contenteditable bind:innerHTML={responsePayloadHighlighted}></code>
-			</pre>
+			<div class="relative">
+				<CopyIconButton text={getResponseBodyText(requestItem) ?? ''} label="Copy response body" class="absolute right-1 top-1 z-10 bg-base-200/80" />
+				<pre class="mt-0"><code class="hljs" contenteditable bind:innerHTML={responsePayloadHighlighted}></code></pre>
+			</div>
 		{/if}
 
 		{#if requestItem.type === 'SVG'}
@@ -137,9 +161,14 @@
 					<div contenteditable bind:innerHTML={requestItem.responsePayload as string}></div>
 				</div>
 				<h3 class="mb-2 text-base">Raw content</h3>
-				<pre class="mt-0 max-w-full">
-					<code class="hljs" contenteditable bind:innerHTML={responsePayloadHighlighted}></code>
-				</pre>
+				<div class="relative">
+					<CopyIconButton
+						text={getResponseBodyText(requestItem) ?? ''}
+						label="Copy response body"
+						class="absolute right-1 top-1 z-10 bg-base-200/80"
+					/>
+					<pre class="mt-0 max-w-full"><code class="hljs" contenteditable bind:innerHTML={responsePayloadHighlighted}></code></pre>
+				</div>
 			</div>
 		{/if}
 
