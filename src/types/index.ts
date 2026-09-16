@@ -98,6 +98,7 @@ export type RequestItem = {
 	requestGQLVariablesCode: string | null;
 	requestPostData: string | null;
 	requestPostDataCode: string | null;
+	requestParams: Param[] | null;
 	responsePayload: unknown;
 	responseMimeType: string;
 };

@@ -27,3 +27,15 @@ pre { margin-top: 0 }
 	top: 0;
 	left: 0;
 }
+
+/* Panel search */
+mark.search-match {
+	background-color: rgba(250, 204, 21, 0.4);
+	color: inherit;
+	border-radius: 2px;
+}
+
+mark.search-match-active {
+	background-color: rgba(249, 115, 22, 0.85);
+	box-shadow: 0 0 0 1px rgba(249, 115, 22, 0.95);
+}

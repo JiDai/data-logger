@@ -84,6 +84,38 @@ function getQueryValue(name: string, params: Param[] = []) {
 	return value && decodeURIComponent(value);
 }
 
+function parseMultipartFormData(mimeType: string | undefined, text: string): Param[] {
+	const boundaryMatch = /boundary=(?:"([^"]+)"|([^;]+))/i.exec(mimeType || '');
+	const boundary = boundaryMatch?.[1] ?? boundaryMatch?.[2];
+	if (!boundary) return [];
+
+	const delimiter = `--${boundary}`;
+	const params: Param[] = [];
+
+	for (const rawPart of text.split(delimiter).slice(1, -1)) {
+		const part = rawPart.replace(/^\r\n/, '');
+		const separatorIndex = part.indexOf('\r\n\r\n');
+		if (separatorIndex === -1) continue;
+
+		const headerLines = part.slice(0, separatorIndex).split('\r\n');
+		const value = part.slice(separatorIndex + 4).replace(/\r\n$/, '');
+
+		const disposition = headerLines.find((line) => /^Content-Disposition:/i.test(line));
+		const nameMatch = disposition && /name="([^"]*)"/i.exec(disposition);
+		if (!nameMatch) continue;
+
+		const fileNameMatch = /filename="([^"]*)"/i.exec(disposition);
+		const contentTypeLine = headerLines.find((line) => /^Content-Type:/i.test(line));
+		const contentType = contentTypeLine?.slice(contentTypeLine.indexOf(':') + 1).trim();
+
+		params.push(
+			fileNameMatch ? { name: nameMatch[1], fileName: fileNameMatch[1], contentType } : { name: nameMatch[1], value },
+		);
+	}
+
+	return params;
+}
+
 function parseQuery(query: string): ParsedQueryDefinition[] {
 	const { definitions } = parse(query, { noLocation: true });
 
@@ -137,8 +169,13 @@ export function parseHTTPEntry(entry: HAREntry): HTTPEntry {
 	let params;
 
 	if (postData) {
-		if (postData.params && postData.params.length > 0) params = postData.params;
-		else if (postData.text) body = JSON.parse(postData.text);
+		if (postData.params && postData.params.length > 0) {
+			params = postData.params;
+		} else if (isContentType(entry.request, 'multipart/form-data') && postData.text) {
+			params = parseMultipartFormData(postData.mimeType, postData.text);
+		} else if (postData.text) {
+			body = JSON.parse(postData.text);
+		}
 	}
 	const getResponse = async () => getContent(entry);
 

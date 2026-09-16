@@ -3,6 +3,8 @@
 	import clsx from 'clsx';
 	import { badgeClassForStatusCode } from './utils';
 	import type { FormEventHandler } from 'svelte/elements';
+	import { PanelSearch } from './lib/panelSearch.svelte';
+	import SearchBar from './SearchBar.svelte';
 
 	type Props = {
 		requestItem: RequestItem;
@@ -11,9 +13,14 @@
 		responsePayloadJSONChangeHandler: FormEventHandler<HTMLInputElement>;
 	}
 	let { requestItem, responsePayloadHighlighted, responsePayloadJSONPathFilter, responsePayloadJSONChangeHandler }: Props = $props();
+
+	const requestSearch = new PanelSearch();
+	const responseSearch = new PanelSearch();
 </script>
 
-<div class="basis-3/6 overflow-y-auto p-2">
+<div class="relative basis-3/6 overflow-hidden">
+	<SearchBar search={requestSearch} label="request" />
+	<div class="h-full overflow-y-auto p-2" use:requestSearch.action>
 	<h2 class="mb-4 text-lg">
 		<span class="flex flex-row items-center gap-2">
 			{requestItem.name}
@@ -70,10 +77,35 @@
 			</pre>
 		</div>
 	{/if}
+	{#if requestItem.requestParams}
+		<div class="mb-3">
+			<h3 class="mb-2 text-base">Form data</h3>
+			<table>
+				<tbody>
+				{#each requestItem.requestParams as param}
+					<tr class="border-b border-solid border-gray-700 align-top">
+						<td class="whitespace-nowrap py-1 pr-2 font-mono">{param.name}</td>
+						<td class="break-all">
+							{#if param.fileName}
+								<span class="badge badge-outline font-mono">{param.fileName}</span>
+								{#if param.contentType}<span class="ml-2 text-xs opacity-70">{param.contentType}</span>{/if}
+							{:else}
+								{param.value}
+							{/if}
+						</td>
+					</tr>
+				{/each}
+				</tbody>
+			</table>
+		</div>
+	{/if}
+	</div>
 </div>
 
-<div class="flex basis-3/6 flex-col overflow-y-auto border-l border-solid border-neutral">
-	<div class="grow overflow-y-auto p-2">
+<div class="flex basis-3/6 flex-col border-l border-solid border-neutral">
+	<div class="relative grow overflow-hidden">
+		<SearchBar search={responseSearch} label="response" />
+		<div class="h-full overflow-y-auto p-2" use:responseSearch.action>
 		<h2 class="mb-4">
 			<span class="mb-2 text-base flex items-center gap-2 flex-nowrap">
 				<span class={clsx('badge font-mono', badgeClassForStatusCode(requestItem.responseStatusCode))}>
@@ -113,6 +145,7 @@
 				</div>
 			</div>
 		{/if}
+		</div>
 	</div>
 	{#if requestItem.type === 'JSON'}
 		<div class="mt-auto flex items-center justify-between border-t border-solid border-neutral bg-base-200">
