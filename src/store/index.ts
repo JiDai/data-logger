@@ -1,7 +1,7 @@
 import { get, writable } from 'svelte/store';
 import jp from 'jsonpath';
 import type { RequestItem } from '../types';
-import { formatAndHighlight } from '../utils';
+import { formatAndHighlight, watchKeyForRequestItem } from '../utils';
 
 /*
  * All request items Store
@@ -92,3 +92,39 @@ export const settings = writable<Settings>(defaultSettings);
 export const setSettings = async function (value: Settings) {
 	settings.set(value);
 };
+
+/*
+ * Watched request Store
+ *
+ * Watching a request item locks the list to requests with the same method and URL
+ * (including query string, when present) and keeps the most recent matching request
+ * selected, so you can keep coding against that call and see its latest response land.
+ */
+export const watchedEndpointKey = writable<string | null>(null);
+export const watchedRequestLabel = writable<string | null>(null);
+
+export const watchRequestItem = function (requestItem: RequestItem) {
+	const key = watchKeyForRequestItem(requestItem);
+	watchedEndpointKey.set(key);
+	watchedRequestLabel.set(`${requestItem.method.toUpperCase()} ${requestItem.url}`);
+
+	const latest = get(entries).find((item) => watchKeyForRequestItem(item) === key);
+	if (latest) {
+		setCurrentRequestItem(latest);
+	}
+};
+
+export const unwatchEndpoint = function () {
+	watchedEndpointKey.set(null);
+	watchedRequestLabel.set(null);
+};
+
+entries.subscribe((items) => {
+	const key = get(watchedEndpointKey);
+	if (!key) return;
+
+	const latest = items.find((item) => watchKeyForRequestItem(item) === key);
+	if (latest && latest.id !== get(currentRequestItem)?.id) {
+		setCurrentRequestItem(latest);
+	}
+});

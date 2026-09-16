@@ -15,11 +15,15 @@
 		settings,
 		endpointUrlFilter,
 		setEndpointUrlFilter,
+		watchedEndpointKey,
+		watchedRequestLabel,
+		watchRequestItem,
+		unwatchEndpoint,
 	} from './store';
 	import { fixtures } from './store/fixtures';
 	import { entries, setCurrentRequestItem, currentRequestItem } from './store';
 	import type { Entry, GQLEntry, HAREntry, HTTPEntry, RequestItem } from './types';
-	import { isGQLEntry, isGraphQL, parseGQLEntry, parseHTTPEntry, resolveResponseMimeType } from './utils';
+	import { endpointKeyForRequestItem, isGQLEntry, isGraphQL, parseGQLEntry, parseHTTPEntry, resolveResponseMimeType, watchKeyForRequestItem } from './utils';
 
 	import RequestDetails from './EntryDetails.svelte';
 	import RequestItemList from './RequestItemList.svelte';
@@ -48,27 +52,42 @@
 	let endpointFilterInput: HTMLInputElement | undefined = $state();
 
 	let filteredRequestItems = $derived(
-		$entries
-			.filter((entry) => {
-				if (!$settings.filters.Img && !$settings.filters.GQL && !$settings.filters.JSON && !$settings.filters.XML && !$settings.filters.Other) {
-					return true;
-				}
-				return (
-					($settings.filters.Img && entry.type === 'IMG') ||
-					($settings.filters.GQL && entry.type === 'GQL') ||
-					($settings.filters.JSON && entry.type === 'JSON') ||
-					($settings.filters.XML && entry.type === 'XML') ||
-					($settings.filters.Other && entry.type === 'Other')
-				);
-			})
-			.filter((entry) => {
-				if (!$endpointUrlFilter) {
-					return true;
-				}
-				const endpointUrl = `${entry.requestDomain}${entry.name}`.toLowerCase();
-				return endpointUrl.includes($endpointUrlFilter.toLowerCase());
-			}),
+		$watchedEndpointKey
+			? $entries.filter((entry) => watchKeyForRequestItem(entry) === $watchedEndpointKey)
+			: $entries
+					.filter((entry) => {
+						if (!$settings.filters.Img && !$settings.filters.GQL && !$settings.filters.JSON && !$settings.filters.XML && !$settings.filters.Other) {
+							return true;
+						}
+						return (
+							($settings.filters.Img && entry.type === 'IMG') ||
+							($settings.filters.GQL && entry.type === 'GQL') ||
+							($settings.filters.JSON && entry.type === 'JSON') ||
+							($settings.filters.XML && entry.type === 'XML') ||
+							($settings.filters.Other && entry.type === 'Other')
+						);
+					})
+					.filter((entry) => {
+						if (!$endpointUrlFilter) {
+							return true;
+						}
+						const endpointUrl = endpointKeyForRequestItem(entry);
+						return endpointUrl.includes($endpointUrlFilter.toLowerCase());
+					}),
 	);
+
+	let isWatchingCurrent = $derived(
+		$currentRequestItem !== null && $watchedEndpointKey === watchKeyForRequestItem($currentRequestItem),
+	);
+
+	function toggleWatchCurrent() {
+		if (!$currentRequestItem) return;
+		if (isWatchingCurrent) {
+			unwatchEndpoint();
+		} else {
+			watchRequestItem($currentRequestItem);
+		}
+	}
 
 	function isEditableTarget(target: EventTarget | null): boolean {
 		if (!(target instanceof HTMLElement)) return false;
@@ -278,20 +297,41 @@
 	<div class="flex h-full flex-row items-stretch gap-x-2">
 		<div class="flex w-[16rem] shrink-0 basis-[16rem] bg-primary-content flex-col border-r border-solid border-neutral justify-between">
 			<div class="flex items-center border-b border-solid border-neutral">
-				<input
-					bind:this={endpointFilterInput}
-					type="text"
-					value={$endpointUrlFilter}
-					placeholder="Filter by endpoint URL"
-					class="w-full bg-transparent p-2 text-xs outline-none ring-0"
-					oninput={(event) => setEndpointUrlFilter(event.currentTarget.value)}
-				/>
-				{#if $endpointUrlFilter}
-					<button class="mr-2" onclick={() => setEndpointUrlFilter('')} aria-label="Clear endpoint URL filter">
-						<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width={1.5} stroke="currentColor" class="h-4 w-4">
-							<path stroke-linecap="round" stroke-linejoin="round" d="m9.75 9.75 4.5 4.5m0-4.5-4.5 4.5M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+				{#if $watchedEndpointKey}
+					<div class="flex w-full items-center gap-2 bg-warning/10 p-2">
+						<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width={1.5} stroke="currentColor" class="h-4 w-4 shrink-0 text-warning">
+							<path
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z"
+							/>
+							<path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
 						</svg>
-					</button>
+						<span class="grow overflow-hidden text-ellipsis whitespace-nowrap" title={$watchedRequestLabel}>
+							Watching <span class="font-mono">{$watchedRequestLabel}</span>
+						</span>
+						<button class="mr-1 shrink-0" onclick={() => unwatchEndpoint()} aria-label="Stop watching" title="Stop watching">
+							<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width={1.5} stroke="currentColor" class="h-4 w-4">
+								<path stroke-linecap="round" stroke-linejoin="round" d="m9.75 9.75 4.5 4.5m0-4.5-4.5 4.5M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+							</svg>
+						</button>
+					</div>
+				{:else}
+					<input
+						bind:this={endpointFilterInput}
+						type="text"
+						value={$endpointUrlFilter}
+						placeholder="Filter by endpoint URL"
+						class="w-full bg-transparent p-2 text-xs outline-none ring-0"
+						oninput={(event) => setEndpointUrlFilter(event.currentTarget.value)}
+					/>
+					{#if $endpointUrlFilter}
+						<button class="mr-2" onclick={() => setEndpointUrlFilter('')} aria-label="Clear endpoint URL filter">
+							<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width={1.5} stroke="currentColor" class="h-4 w-4">
+								<path stroke-linecap="round" stroke-linejoin="round" d="m9.75 9.75 4.5 4.5m0-4.5-4.5 4.5M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+							</svg>
+						</button>
+					{/if}
 				{/if}
 			</div>
 			<RequestItemList requestItems={filteredRequestItems} {setCurrentRequestItem} currentRequestItem={$currentRequestItem} />
@@ -307,6 +347,8 @@
 				responsePayloadHighlighted={$responsePayloadHighlighted}
 				responsePayloadJSONPathFilter={$responsePayloadJSONPathFilter}
 				{responsePayloadJSONChangeHandler}
+				isWatching={isWatchingCurrent}
+				onToggleWatch={toggleWatchCurrent}
 			/>
 		{/if}
 	</div>
