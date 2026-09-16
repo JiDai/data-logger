@@ -19,7 +19,7 @@
 	import { fixtures } from './store/fixtures';
 	import { entries, setCurrentRequestItem, currentRequestItem } from './store';
 	import type { Entry, GQLEntry, HAREntry, HTTPEntry, RequestItem } from './types';
-	import { isGQLEntry, isGraphQL, parseGQLEntry, parseHTTPEntry } from './utils';
+	import { isGQLEntry, isGraphQL, parseGQLEntry, parseHTTPEntry, resolveResponseMimeType } from './utils';
 
 	import RequestDetails from './EntryDetails.svelte';
 	import RequestItemList from './RequestItemList.svelte';
@@ -48,10 +48,11 @@
 	const acceptedMimeTypes = [/application\/json/, /text\/.*/, /image\/.*/];
 
 	function isAcceptedEntry(entry: Entry) {
+		const mimeType = resolveResponseMimeType({ url: entry.request.url, mimeType: entry.response.mimeType });
 		return (
 			entry.request.method !== 'OPTIONS' &&
 			acceptedMimeTypes.findIndex((acceptedMimeTypeRegEx) => {
-				return acceptedMimeTypeRegEx.test(entry.response.mimeType);
+				return acceptedMimeTypeRegEx.test(mimeType);
 			}) >= 0
 		);
 	}
@@ -64,19 +65,21 @@
 			console.warn(`Unable to get response body for entry: ${entry.id}`, error);
 		}
 
+		const responseMimeType = resolveResponseMimeType({ url: entry.request.url, mimeType: entry.response.mimeType });
+
 		let requestType: RequestItem['type'] = 'Other';
 
 		if (isGQLEntry(entry)) {
 			requestType = 'GQL';
-		} else if (/application\/json/.test(entry.response.mimeType)) {
+		} else if (/application\/json/.test(responseMimeType)) {
 			requestType = 'JSON';
-		} else if (/text\/html/.test(entry.response.mimeType)) {
+		} else if (/text\/html/.test(responseMimeType)) {
 			requestType = 'XML';
-		} else if (/text\/xml/.test(entry.response.mimeType)) {
+		} else if (/text\/xml/.test(responseMimeType)) {
 			requestType = 'XML';
-		} else if (/image\/svg\+xml.*/.test(entry.response.mimeType)) {
+		} else if (/image\/svg\+xml.*/.test(responseMimeType)) {
 			requestType = 'SVG';
-		} else if (/image\/.*/.test(entry.response.mimeType)) {
+		} else if (/image\/.*/.test(responseMimeType)) {
 			requestType = 'IMG';
 		}
 
@@ -89,7 +92,9 @@
 				name: `${e.request.operationType} ${e.request.name}`,
 				type: 'GQL',
 				method: e.request.method,
+				url: e.request.url,
 				headers: e.request.headers,
+				responseHeaders: e.response.headers,
 				time: e.time,
 				requestDomain: e.request.url,
 				requestQueryString: null,
@@ -115,7 +120,7 @@
 				responseStatusCode: e.response.status,
 				responseStatusMessage: e.response.statusMessage,
 				responsePayload: responsePayload ? responsePayload : 'No response',
-				responseMimeType: e.response.mimeType,
+				responseMimeType,
 			};
 		} else {
 			const e = entry as HTTPEntry;
@@ -125,7 +130,9 @@
 				name: e.request.name,
 				type: requestType,
 				method: e.request.method,
+				url: e.request.url,
 				headers: e.request.headers,
+				responseHeaders: e.response.headers,
 				time: e.time,
 				requestDomain: e.request.url.replace(new RegExp(`${escapeRegExp(e.request.pathname)}.*`), ''),
 				requestQueryString: JSON.stringify(e.request.query, null, 3),
@@ -140,7 +147,7 @@
 				responseStatusCode: e.response.status,
 				responseStatusMessage: e.response.statusMessage,
 				responsePayload: responsePayload ? responsePayload : 'No response',
-				responseMimeType: e.response.mimeType,
+				responseMimeType,
 			};
 		}
 		return requestItem;

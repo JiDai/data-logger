@@ -33,8 +33,7 @@ Tip : Try GraphQL request with https://swapi-graphql.eskerda.vercel.app/
 
 ## Todo
 
-- Feature #3: Handle Multipart request
-- Feature #4: Button to copy request headers, response, curl, ....
-- Feature #5: Global search
+- Feature #8: Navigation clavier
 - Feature #6: Create a component for smart tooltip
 - Feature #7: Request watcher, pin a request and display automatically following same requests
+- Feature #5: Global search

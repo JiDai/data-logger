@@ -50,6 +50,27 @@ function isContentType(request: { headers: Header[] }, contentType: string) {
 	);
 }
 
+const EXTENSION_MIME_TYPES: Record<string, string> = {
+	png: 'image/png',
+	jpg: 'image/jpeg',
+	jpeg: 'image/jpeg',
+	gif: 'image/gif',
+	webp: 'image/webp',
+	svg: 'image/svg+xml',
+	ico: 'image/x-icon',
+	bmp: 'image/bmp',
+	avif: 'image/avif',
+};
+
+// Firefox/Chrome report 'application/x-unknown-content-type' when a response has no Content-Type
+// header at all; fall back to sniffing the URL's file extension so those entries still classify correctly.
+export function resolveResponseMimeType({ url, mimeType }: { url: string; mimeType: string }): string {
+	if (mimeType && mimeType !== 'application/x-unknown-content-type') return mimeType;
+
+	const extension = parseURL(url).pathname.split('.').pop()?.toLowerCase();
+	return (extension && EXTENSION_MIME_TYPES[extension]) || mimeType;
+}
+
 function isOperationDefinition(node: DefinitionNode): node is OperationDefinitionNode {
 	return node.kind === Kind.OPERATION_DEFINITION;
 }
