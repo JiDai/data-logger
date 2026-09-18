@@ -1,12 +1,14 @@
 <script lang="ts">
 	import type { RequestItem } from './types';
 	import clsx from 'clsx';
+	import jp from 'jsonpath';
 	import { badgeClassForStatusCode } from './utils';
 	import type { FormEventHandler } from 'svelte/elements';
 	import { PanelSearch } from './lib/panelSearch.svelte';
 	import SearchBar from './SearchBar.svelte';
 	import CopyMenu from './CopyMenu.svelte';
 	import CopyIconButton from './CopyIconButton.svelte';
+	import JsonNode from './JsonNode.svelte';
 	import { formatRequestHeaders, formatRequestParams, getResponseBodyText } from './lib/copyExport';
 
 	type Props = {
@@ -21,6 +23,17 @@
 
 	const requestSearch = new PanelSearch();
 	const responseSearch = new PanelSearch();
+
+	let jsonResponsePayload = $derived.by(() => {
+		if (requestItem.type !== 'JSON' || !requestItem.responsePayload) return undefined;
+		if (!responsePayloadJSONPathFilter) return requestItem.responsePayload;
+		try {
+			return jp.query(requestItem.responsePayload, responsePayloadJSONPathFilter);
+		} catch (error) {
+			console.error('jsonpath error', error);
+			return requestItem.responsePayload;
+		}
+	});
 </script>
 
 <div class="relative basis-3/6 overflow-hidden">
@@ -168,7 +181,14 @@
 			</span>
 		</h2>
 
-		{#if ['JSON', 'GQL', 'XML'].includes(requestItem.type) && requestItem.responsePayload}
+		{#if requestItem.type === 'JSON' && requestItem.responsePayload}
+			<div class="relative">
+				<CopyIconButton text={getResponseBodyText(requestItem) ?? ''} label="Copy response body" class="absolute right-1 top-1 z-10 bg-base-200/80" />
+				<div class="json-tree hljs mt-0 font-mono text-xs"><JsonNode value={jsonResponsePayload} /></div>
+			</div>
+		{/if}
+
+		{#if ['GQL', 'XML'].includes(requestItem.type) && requestItem.responsePayload}
 			<div class="relative">
 				<CopyIconButton text={getResponseBodyText(requestItem) ?? ''} label="Copy response body" class="absolute right-1 top-1 z-10 bg-base-200/80" />
 				<pre class="mt-0"><code class="hljs" contenteditable bind:innerHTML={responsePayloadHighlighted}></code></pre>

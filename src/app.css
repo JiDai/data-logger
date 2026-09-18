@@ -39,3 +39,48 @@ mark.search-match-active {
 	background-color: rgba(249, 115, 22, 0.85);
 	box-shadow: 0 0 0 1px rgba(249, 115, 22, 0.95);
 }
+
+/* JSON folding tree */
+.json-tree {
+	line-height: 1.4;
+}
+
+.json-tree .json-line {
+	white-space: pre-wrap;
+	word-break: break-word;
+}
+
+.json-tree .json-children {
+	margin-left: 0.5em;
+	padding-left: 0.5em;
+	border-left: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.json-tree summary {
+	list-style: none;
+	cursor: pointer;
+	white-space: pre-wrap;
+	word-break: break-word;
+}
+
+.json-tree summary::-webkit-details-marker {
+	display: none;
+}
+
+.json-tree summary::before {
+	content: '▸';
+	display: inline-block;
+	width: 0.9em;
+	color: rgba(255, 255, 255, 0.4);
+	transition: transform 0.1s ease;
+}
+
+.json-tree details[open] > summary::before {
+	transform: rotate(90deg);
+}
+
+.json-tree .json-preview {
+	color: rgba(255, 255, 255, 0.45);
+	font-style: italic;
+	margin: 0 0.35em;
+}
