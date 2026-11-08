@@ -1,13 +1,17 @@
 <script lang="ts">
 	import type { RequestItem } from './types';
 	import clsx from 'clsx';
+	import jp from 'jsonpath';
 	import { badgeClassForStatusCode } from './utils';
 	import type { FormEventHandler } from 'svelte/elements';
 	import { PanelSearch } from './lib/panelSearch.svelte';
 	import SearchBar from './SearchBar.svelte';
 	import CopyMenu from './CopyMenu.svelte';
 	import CopyIconButton from './CopyIconButton.svelte';
+	import JsonNode from './JsonNode.svelte';
 	import { formatRequestHeaders, formatRequestParams, getResponseBodyText } from './lib/copyExport';
+	import ResizeHandle from './ResizeHandle.svelte';
+	import { clamp, readNumber, writeNumber } from './lib/persisted';
 
 	type Props = {
 		requestItem: RequestItem;
@@ -19,11 +23,42 @@
 	}
 	let { requestItem, responsePayloadHighlighted, responsePayloadJSONPathFilter, responsePayloadJSONChangeHandler, isWatching, onToggleWatch }: Props = $props();
 
+	const SPLIT_DEFAULT = 50;
+	const SPLIT_MIN = 15;
+	const SPLIT_MAX = 85;
+	const SPLIT_KEY = 'detailsSplit';
+	let detailsElement: HTMLDivElement | undefined = $state();
+	// Width of the request panel, as a percentage of the details area.
+	let requestPanelPercent = $state(readNumber(SPLIT_KEY, SPLIT_DEFAULT));
+
+	function setRequestPanelPercent(percent: number) {
+		requestPanelPercent = Math.round(clamp(percent, SPLIT_MIN, SPLIT_MAX) * 10) / 10;
+	}
+
+	function handleSplitDrag(clientX: number) {
+		if (!detailsElement) return;
+		const rect = detailsElement.getBoundingClientRect();
+		if (rect.width === 0) return;
+		setRequestPanelPercent(((clientX - rect.left) / rect.width) * 100);
+	}
+
 	const requestSearch = new PanelSearch();
 	const responseSearch = new PanelSearch();
+
+	let jsonResponsePayload = $derived.by(() => {
+		if (requestItem.type !== 'JSON' || !requestItem.responsePayload) return undefined;
+		if (!responsePayloadJSONPathFilter) return requestItem.responsePayload;
+		try {
+			return jp.query(requestItem.responsePayload, responsePayloadJSONPathFilter);
+		} catch (error) {
+			console.error('jsonpath error', error);
+			return requestItem.responsePayload;
+		}
+	});
 </script>
 
-<div class="relative basis-3/6 overflow-hidden">
+<div class="flex min-w-0 grow flex-row items-stretch" bind:this={detailsElement}>
+<div class="relative min-w-0 shrink-0 overflow-hidden" style:width="{requestPanelPercent}%">
 	<SearchBar search={requestSearch} label="request">
 		{#snippet leading()}
 			<CopyMenu {requestItem} />
@@ -150,7 +185,16 @@
 	</div>
 </div>
 
-<div class="flex basis-3/6 flex-col border-l border-solid border-neutral">
+<ResizeHandle
+	label="Resize request and response panels"
+	value={requestPanelPercent}
+	onDrag={handleSplitDrag}
+	onStep={(direction, large) => setRequestPanelPercent(requestPanelPercent + direction * (large ? 10 : 2))}
+	onReset={() => setRequestPanelPercent(SPLIT_DEFAULT)}
+	onCommit={() => writeNumber(SPLIT_KEY, requestPanelPercent)}
+/>
+
+<div class="flex min-w-0 grow basis-0 flex-col">
 	<div class="relative grow overflow-hidden">
 		<SearchBar search={responseSearch} label="response" />
 		<div class="h-full overflow-y-auto p-2" use:responseSearch.action>
@@ -168,7 +212,14 @@
 			</span>
 		</h2>
 
-		{#if ['JSON', 'GQL', 'XML'].includes(requestItem.type) && requestItem.responsePayload}
+		{#if requestItem.type === 'JSON' && requestItem.responsePayload}
+			<div class="relative">
+				<CopyIconButton text={getResponseBodyText(requestItem) ?? ''} label="Copy response body" class="absolute right-1 top-1 z-10 bg-base-200/80" />
+				<div class="json-tree hljs mt-0 font-mono text-xs"><JsonNode value={jsonResponsePayload} /></div>
+			</div>
+		{/if}
+
+		{#if ['GQL', 'XML'].includes(requestItem.type) && requestItem.responsePayload}
 			<div class="relative">
 				<CopyIconButton text={getResponseBodyText(requestItem) ?? ''} label="Copy response body" class="absolute right-1 top-1 z-10 bg-base-200/80" />
 				<pre class="mt-0"><code class="hljs" contenteditable bind:innerHTML={responsePayloadHighlighted}></code></pre>
@@ -219,4 +270,5 @@
 			{/if}
 		</div>
 	{/if}
+</div>
 </div>

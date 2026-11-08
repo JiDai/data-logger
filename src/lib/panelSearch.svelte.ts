@@ -16,6 +16,16 @@ function buildMatcher(query: string, caseSensitive: boolean, useRegex: boolean):
 	}
 }
 
+function expandCollapsedAncestors(mark: HTMLElement) {
+	let el = mark.parentElement;
+	while (el) {
+		if (el instanceof HTMLDetailsElement && !el.open) {
+			el.open = true;
+		}
+		el = el.parentElement;
+	}
+}
+
 function clearMatches(root: HTMLElement) {
 	const marks = root.querySelectorAll(`mark.${MATCH_CLASS}`);
 	marks.forEach((mark) => {
@@ -204,6 +214,7 @@ export class PanelSearch {
 
 			this.invalidRegex = false;
 			this.#marks = highlightMatches(this.#container!, matcher);
+			this.#marks.forEach(expandCollapsedAncestors);
 			this.matchCount = this.#marks.length;
 			this.currentIndex = this.matchCount > 0 ? 0 : -1;
 		});

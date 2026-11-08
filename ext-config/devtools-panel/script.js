@@ -9,7 +9,7 @@ function handleHidden() {
 browser.devtools.panels
 	.create(
 		"Data logger", // title
-		"../../icons/icon.png", // icon
+		"../../static/icon.png", // icon
 		"./app/index.html", // content
 	)
 	.then((newPanel) => {

@@ -1,15 +1,15 @@
 {
-   "manifest_version": 3,
-   "name": "data-logger",
-   "description": "description",
-   "version": "0.1.0",
-   "browser_specific_settings": {
-      "gecko": {
-         "id": "data-logger@jidai.fr"
-      }
-   },
-   "icons": {
-      "64": "static/icon.png"
-   },
-   "devtools_page": "./ext-config/devtools-panel/index.html"
+	"manifest_version": 3,
+	"name": "data-logger",
+	"description": "description",
+	"version": "0.3.0",
+	"browser_specific_settings": {
+		"gecko": {
+			"id": "data-logger@jidai.fr"
+		}
+	},
+	"icons": {
+		"64": "static/icon.png"
+	},
+	"devtools_page": "./ext-config/devtools-panel/index.html"
 }
