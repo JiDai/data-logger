@@ -10,6 +10,8 @@
 	import CopyIconButton from './CopyIconButton.svelte';
 	import JsonNode from './JsonNode.svelte';
 	import { formatRequestHeaders, formatRequestParams, getResponseBodyText } from './lib/copyExport';
+	import ResizeHandle from './ResizeHandle.svelte';
+	import { clamp, readNumber, writeNumber } from './lib/persisted';
 
 	type Props = {
 		requestItem: RequestItem;
@@ -20,6 +22,25 @@
 		onToggleWatch: () => void;
 	}
 	let { requestItem, responsePayloadHighlighted, responsePayloadJSONPathFilter, responsePayloadJSONChangeHandler, isWatching, onToggleWatch }: Props = $props();
+
+	const SPLIT_DEFAULT = 50;
+	const SPLIT_MIN = 15;
+	const SPLIT_MAX = 85;
+	const SPLIT_KEY = 'detailsSplit';
+	let detailsElement: HTMLDivElement | undefined = $state();
+	// Width of the request panel, as a percentage of the details area.
+	let requestPanelPercent = $state(readNumber(SPLIT_KEY, SPLIT_DEFAULT));
+
+	function setRequestPanelPercent(percent: number) {
+		requestPanelPercent = Math.round(clamp(percent, SPLIT_MIN, SPLIT_MAX) * 10) / 10;
+	}
+
+	function handleSplitDrag(clientX: number) {
+		if (!detailsElement) return;
+		const rect = detailsElement.getBoundingClientRect();
+		if (rect.width === 0) return;
+		setRequestPanelPercent(((clientX - rect.left) / rect.width) * 100);
+	}
 
 	const requestSearch = new PanelSearch();
 	const responseSearch = new PanelSearch();
@@ -36,7 +57,8 @@
 	});
 </script>
 
-<div class="relative basis-3/6 overflow-hidden">
+<div class="flex min-w-0 grow flex-row items-stretch" bind:this={detailsElement}>
+<div class="relative min-w-0 shrink-0 overflow-hidden" style:width="{requestPanelPercent}%">
 	<SearchBar search={requestSearch} label="request">
 		{#snippet leading()}
 			<CopyMenu {requestItem} />
@@ -163,7 +185,16 @@
 	</div>
 </div>
 
-<div class="flex basis-3/6 flex-col border-l border-solid border-neutral">
+<ResizeHandle
+	label="Resize request and response panels"
+	value={requestPanelPercent}
+	onDrag={handleSplitDrag}
+	onStep={(direction, large) => setRequestPanelPercent(requestPanelPercent + direction * (large ? 10 : 2))}
+	onReset={() => setRequestPanelPercent(SPLIT_DEFAULT)}
+	onCommit={() => writeNumber(SPLIT_KEY, requestPanelPercent)}
+/>
+
+<div class="flex min-w-0 grow basis-0 flex-col">
 	<div class="relative grow overflow-hidden">
 		<SearchBar search={responseSearch} label="response" />
 		<div class="h-full overflow-y-auto p-2" use:responseSearch.action>
@@ -239,4 +270,5 @@
 			{/if}
 		</div>
 	{/if}
+</div>
 </div>

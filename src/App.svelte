@@ -29,6 +29,8 @@
 	import RequestItemList from './RequestItemList.svelte';
 	import type { FormEventHandler } from 'svelte/elements';
 	import Settings from './Settings.svelte';
+	import ResizeHandle from './ResizeHandle.svelte';
+	import { clamp, readNumber, writeNumber } from './lib/persisted';
 
 	hljs.registerLanguage('graphql', gqlLanguage);
 	hljs.registerLanguage('json', jsonLanguage);
@@ -50,6 +52,21 @@
 	}
 
 	let endpointFilterInput: HTMLInputElement | undefined = $state();
+
+	const SIDEBAR_DEFAULT_WIDTH = 256;
+	const SIDEBAR_MIN_WIDTH = 160;
+	const SIDEBAR_KEY = 'sidebarWidth';
+	let layoutElement: HTMLDivElement | undefined = $state();
+	let sidebarWidth = $state(readNumber(SIDEBAR_KEY, SIDEBAR_DEFAULT_WIDTH));
+
+	function sidebarMaxWidth() {
+		// Always leave room for the details panels.
+		return (layoutElement?.clientWidth ?? window.innerWidth) * 0.6;
+	}
+
+	function setSidebarWidth(width: number) {
+		sidebarWidth = Math.round(clamp(width, SIDEBAR_MIN_WIDTH, sidebarMaxWidth()));
+	}
 
 	let filteredRequestItems = $derived(
 		$watchedEndpointKey
@@ -294,8 +311,8 @@
 <svelte:window onkeydown={handleWindowKeydown} />
 
 <div class="h-full text-xs">
-	<div class="flex h-full flex-row items-stretch gap-x-2">
-		<div class="flex w-[16rem] shrink-0 basis-[16rem] bg-primary-content flex-col border-r border-solid border-neutral justify-between">
+	<div class="flex h-full flex-row items-stretch" bind:this={layoutElement}>
+		<div class="flex min-w-0 shrink-0 bg-primary-content flex-col justify-between" style:width="{sidebarWidth}px">
 			<div class="flex items-center border-b border-solid border-neutral">
 				{#if $watchedEndpointKey}
 					<div class="flex w-full items-center gap-2 bg-warning/10 p-2">
@@ -340,6 +357,15 @@
 				<Settings />
 			</div>
 		</div>
+
+		<ResizeHandle
+			label="Resize request list"
+			value={sidebarWidth}
+			onDrag={(clientX) => setSidebarWidth(clientX - (layoutElement?.getBoundingClientRect().left ?? 0))}
+			onStep={(direction, large) => setSidebarWidth(sidebarWidth + direction * (large ? 64 : 16))}
+			onReset={() => setSidebarWidth(SIDEBAR_DEFAULT_WIDTH)}
+			onCommit={() => writeNumber(SIDEBAR_KEY, sidebarWidth)}
+		/>
 
 		{#if $currentRequestItem}
 			<RequestDetails
